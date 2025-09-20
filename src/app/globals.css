@@ -1,26 +1,40 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+/* Variáveis (opcional) para uso em CSS puro  */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --plant-primary:  #2ECC71; /* Verde Vivo */
+  --plant-dark:     #14532D; /* Verde Escuro */
+  --plant-highlight:#F1C40F; /* Amarelo Solar */
+  --plant-ice:      #F4F4F4; /* Cinza Gelo */
+  --plant-graphite: #1E1E1E; /* Preto Grafite */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Base do app: fundo gelo e texto grafite */
+html, body {
+  @apply bg-plant-ice text-plant-graphite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dark mode  */
+.dark html, .dark body {
+  @apply bg-plant-graphite text-plant-ice;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Component helpers */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-medium shadow-plant transition
+         hover:opacity-90 active:scale-[0.99];
+}
+.btn-primary {
+  @apply bg-plant-primary text-white;
+}
+.btn-outline {
+  @apply border border-plant-dark text-plant-dark bg-white hover:bg-plant-ice;
+}
+.badge {
+  @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
+}
+.badge-highlight {
+  @apply bg-plant-highlight/20 text-plant-dark;
 }
