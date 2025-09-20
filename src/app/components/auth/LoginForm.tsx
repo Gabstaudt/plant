@@ -39,26 +39,26 @@ export default function LoginForm() {
     }
 
 
-    start(async () => {
-      try {
-        const res = await api<LoginResponse>("/auth/login", {
-          method: "POST",
-          body: JSON.stringify(parsed.data),
-        });
-
-        if (!res.ok || !res.token || !res.role) {
-          setError(res.message || "Falha no login.");
-          return;
-        }
-
-        localStorage.setItem("token", res.token);
-        localStorage.setItem("role", res.role);
-
-        router.replace(res.role === "ADMIN" ? "/admin" : "/user");
-      } catch {
-        setError("Erro de conexão. Tente novamente.");
-      }
+   start(async () => {
+  try {
+    const res = await api<LoginResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(parsed.data),
     });
+
+    if (!res.ok || !res.token || !res.role) {
+      setError(res.message || "Falha no login.");
+      return;
+    }
+
+    localStorage.setItem("token", res.token);
+    localStorage.setItem("role", res.role);
+
+    router.replace("/dashboard");
+  } catch {
+    setError("Erro de conexão. Tente novamente.");
+  }
+});
   }
 
   return (

@@ -1,11 +1,7 @@
-//mock de dados para teste de front
-
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   const { email, password } = await req.json();
-
-  // mock simples: admin se e-mail termina com "admin.com"
   const isAdmin = /@admin\.com$/i.test(email);
   const ok = password === "123456";
 
