@@ -50,7 +50,7 @@ export default function Sidebar({ initialRole }: { initialRole?: Role }) {
         </button>
         <Link href="/dashboard" className="inline-flex items-center gap-2">
           <img src="/logo.png" alt="Logo" className="h-7 w-auto" />
-          <span className="text-[var(--plant-dark)] font-extrabold">PlantMonitor</span>
+          <span className="text-[var(--plant-dark)] font-extrabold">NOME AQUI</span>
         </Link>
         <div className="w-6" />
       </div>
@@ -68,62 +68,55 @@ export default function Sidebar({ initialRole }: { initialRole?: Role }) {
       >
         <div className="flex items-center gap-3 px-4 py-4">
           <img src="/logo.png" alt="Logo" className="h-9 w-auto" />
-          <span className="text-[var(--plant-dark)] font-extrabold text-lg">PlantMonitor</span>
+          <span className="text-[var(--plant-dark)] font-extrabold text-lg">NOME AQUI</span>
         </div>
 
-        <LayoutGroup>
-          <nav className="px-3 pb-6 space-y-1">
-            {items.map(({ href, label, Icon }) => {
-              const active = isActive(pathname, href);
-              return (
-                <div key={href} className="relative">
-                  {/* fundo animado do item ativo (pill) */}
-                  <AnimatePresence>
-                    {active && (
-                      <motion.span
-                        layoutId="active-pill"
-                        className="absolute inset-0 rounded-2xl bg-[var(--plant-primary)]/12 ring-1 ring-[var(--plant-primary)]"
-                        transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                      />
-                    )}
-                  </AnimatePresence>
+<LayoutGroup>
+  <nav className="px-3 pb-6 space-y-1">
+    {items.map(({ href, label, Icon }) => {
+      const active = isActive(pathname, href);
+      return (
+        <div key={href} className="relative">
+         
+          <AnimatePresence>
+            {active && (
+              <motion.span
+                layoutId="active-pill"
+                className="absolute inset-0 rounded-2xl bg-[var(--plant-primary)]/12"
+                transition={{ type: "spring", stiffness: 500, damping: 38 }}
+              />
+            )}
+          </AnimatePresence>
 
-                  {/* detalhe curvo na borda direita quando ativo */}
-                  <AnimatePresence>
-                    {active && (
-                      <motion.span
-                        key="curve"
-                        initial={{ opacity: 0, scaleY: 0.8 }}
-                        animate={{ opacity: 1, scaleY: 1 }}
-                        exit={{ opacity: 0, scaleY: 0.8 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute top-1/2 -right-1 h-8 w-3 -translate-y-1/2 rounded-l-full"
-                        style={{ background: "color-mix(in srgb, var(--plant-primary) 35%, white)" }}
-                      />
-                    )}
-                  </AnimatePresence>
-
-                  <Link
-                    href={href}
-                    onClick={() => setOpen(false)}
-                    aria-current={active ? "page" : undefined}
-                    className={[
-                      "relative group flex items-center gap-3 rounded-2xl px-3 py-2.5 transition",
-                      active
-                        ? "text-[var(--plant-dark)]"
-                        : "text-[var(--plant-graphite)]/65 hover:text-[var(--plant-dark)] hover:bg-[var(--plant-primary)]/8",
-                    ].join(" ")}
-                  >
-                    <span className="grid place-items-center">
-                      <Icon className={`w-5 h-5 ${active ? "text-[var(--plant-dark)]" : "text-[var(--plant-graphite)]/60 group-hover:text-[var(--plant-dark)]"}`} />
-                    </span>
-                    <span className="font-medium">{label}</span>
-                  </Link>
-                </div>
-              );
-            })}
-          </nav>
-        </LayoutGroup>
+          <Link
+            href={href}
+            onClick={() => setOpen(false)}
+            aria-current={active ? "page" : undefined}
+            className={[
+              "relative group flex items-center gap-3 rounded-2xl px-3 py-2.5",
+              "transition-colors duration-150",
+              active
+                ? "text-[var(--plant-primary)]"
+                : "text-[var(--plant-graphite)]/65 hover:text-[var(--plant-primary)] hover:bg-[var(--plant-primary)]/8",
+            ].join(" ")}
+          >
+            <span className="grid place-items-center">
+              <Icon
+                className={[
+                  "w-5 h-5 transition-colors duration-150",
+                  active
+                    ? "text-[var(--plant-primary)]"
+                    : "text-[var(--plant-graphite)]/60 group-hover:text-[var(--plant-primary)]",
+                ].join(" ")}
+              />
+            </span>
+            <span className="font-semibold">{label}</span>
+          </Link>
+        </div>
+      );
+    })}
+  </nav>
+</LayoutGroup>
       </aside>
     </>
   );
