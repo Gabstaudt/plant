@@ -5,6 +5,7 @@ import { z } from "zod";
 import { loginSchema } from "@/app/lib/validators";
 import { api } from "@/app/lib/http";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type LoginResponse = {
   ok: boolean;
@@ -64,7 +65,7 @@ export default function LoginForm() {
     <form onSubmit={onSubmit} className="space-y-6">
       <div>
         <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="email">
-          Username
+          Email
         </label>
         <input
           id="email"
@@ -78,13 +79,13 @@ export default function LoginForm() {
 
       <div>
         <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="password">
-          Password
+          Senha
         </label>
         <input
           id="password"
           name="password"
           type="password"
-          placeholder="Enter your password"
+          placeholder="Digite sua senha"
           className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
                      focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
         />
@@ -95,10 +96,10 @@ export default function LoginForm() {
               type="checkbox"
               className="rounded border-gray-300 text-[var(--plant-primary)] focus:ring-[var(--plant-primary)]"
             />
-            Remember me
+            Lembre-se de mim
           </label>
           <a className="text-sm font-semibold text-[var(--plant-primary)] hover:underline" href="#">
-            Forgot Password?
+            Esqueceu a senha?
           </a>
         </div>
       </div>
@@ -114,15 +115,15 @@ export default function LoginForm() {
         className="btn btn-primary w-full rounded-full py-3 font-bold shadow-md
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--plant-primary)]/30"
       >
-        {pending ? "Entrando..." : "Let's Plant"}
+        {pending ? "Entrando..." : "Entrar"}
       </button>
 
-      <p className="text-center helper mt-4">
-        Don’t have an account yet?{" "}
-        <a className="font-semibold text-[var(--plant-primary)] hover:underline" href="#">
-          Register
-        </a>
-      </p>
+     <p className="text-center helper">
+        Ainda não tem uma conta?{" "}
+        <Link href="/register" className="font-semibold text-[var(--plant-primary)] hover:underline">
+            Registre-se
+        </Link>
+    </p>
     </form>
   );
 }
