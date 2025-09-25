@@ -4,67 +4,83 @@ import { useState, useTransition } from "react";
 import { z } from "zod";
 import { loginSchema } from "@/app/lib/validators";
 import { api } from "@/app/lib/http";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-type LoginResponse = {
-  ok: boolean;
+type LoginDto = z.infer<typeof loginSchema>;
+
+type LoginApiResponse = {
+  access_token: string;
+};
+
+type MeResponse = {
+  id: string | number;
+  email: string;
+  name?: string;
   role?: "ADMIN" | "USER";
-  token?: string;
-  message?: string;
 };
 
 export default function LoginForm() {
   const router = useRouter();
+  const search = useSearchParams();
+  const justCreated = search?.get("created") === "1";
+
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-    
-  
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
 
     const fd = new FormData(e.currentTarget);
-    const data = {
+    const data: LoginDto = {
       email: String(fd.get("email") || ""),
       password: String(fd.get("password") || ""),
     };
 
-        const parsed = loginSchema.safeParse(data);
+    const parsed = loginSchema.safeParse(data);
     if (!parsed.success) {
-    const first = parsed.error.issues[0]?.message ?? "Dados inválidos.";
-    setError(first);
-    return;
-    }
-
-
-   start(async () => {
-  try {
-    const res = await api<LoginResponse>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify(parsed.data),
-    });
-
-    if (!res.ok || !res.token || !res.role) {
-      setError(res.message || "Falha no login.");
+      const first = parsed.error.issues[0]?.message ?? "Dados inválidos.";
+      setError(first);
       return;
     }
 
-    localStorage.setItem("token", res.token);
-    localStorage.setItem("role", res.role);
+    start(async () => {
+      try {
+        // 1) Login na API
+        const login = await api<LoginApiResponse>("/auth/login", {
+          method: "POST",
+          body: JSON.stringify(parsed.data),
+        });
 
-    router.replace("/dashboard");
-  } catch {
-    setError("Erro de conexão. Tente novamente.");
-  }
-});
+        if (!login?.access_token) {
+          setError("Falha no login.");
+          return;
+        }
+
+        // 2) Guardar token
+        localStorage.setItem("token", login.access_token);
+
+        // 3) Buscar perfil
+        const me = await api<MeResponse>("/users/me", { method: "GET" });
+        const role = me?.role ?? "USER";
+        localStorage.setItem("role", role);
+
+        // 4) Ir ao dashboard
+        router.replace("/dashboard");
+      } catch (err: any) {
+        setError(err?.message || "Erro de conexão. Tente novamente.");
+      }
+    });
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <div>
-        <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="email">
+        <label
+          className="label block mb-2 font-semibold text-[var(--plant-dark)]"
+          htmlFor="email"
+        >
           Email
         </label>
         <input
@@ -78,7 +94,10 @@ export default function LoginForm() {
       </div>
 
       <div>
-        <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="password">
+        <label
+          className="label block mb-2 font-semibold text-[var(--plant-dark)]"
+          htmlFor="password"
+        >
           Senha
         </label>
         <input
@@ -98,7 +117,10 @@ export default function LoginForm() {
             />
             Lembre-se de mim
           </label>
-          <a className="text-sm font-semibold text-[var(--plant-primary)] hover:underline" href="#">
+          <a
+            className="text-sm font-semibold text-[var(--plant-primary)] hover:underline"
+            href="#"
+          >
             Esqueceu a senha?
           </a>
         </div>
@@ -110,6 +132,12 @@ export default function LoginForm() {
         </p>
       )}
 
+      {justCreated && (
+        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700 border border-green-200">
+          Conta criada com sucesso. Faça login para continuar.
+        </p>
+      )}
+
       <button
         disabled={pending}
         className="btn btn-primary w-full rounded-full py-3 font-bold shadow-md
@@ -118,12 +146,15 @@ export default function LoginForm() {
         {pending ? "Entrando..." : "Entrar"}
       </button>
 
-     <p className="text-center helper">
+      <p className="text-center helper">
         Ainda não tem uma conta?{" "}
-        <Link href="/register" className="font-semibold text-[var(--plant-primary)] hover:underline">
-            Registre-se
+        <Link
+          href="/register"
+          className="font-semibold text-[var(--plant-primary)] hover:underline"
+        >
+          Registre-se
         </Link>
-    </p>
+      </p>
     </form>
   );
 }

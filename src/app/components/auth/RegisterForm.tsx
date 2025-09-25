@@ -1,21 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerSchema } from "@/app/lib/validators";
 import { api } from "@/app/lib/http";
 
-type RegisterResponse = {
-  ok: boolean;
-  id?: string;
-  role?: "USER" | "ADMIN";
-  message?: string;
-};
+type RegisterDto = z.infer<typeof registerSchema>;
 
 export default function RegisterForm() {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -23,36 +19,39 @@ export default function RegisterForm() {
     setError(null);
 
     const fd = new FormData(e.currentTarget);
-    const data = {
+    const data: RegisterDto = {
       fullName: String(fd.get("fullName") || ""),
       email: String(fd.get("email") || ""),
       password: String(fd.get("password") || ""),
-      confirmPassword: String(fd.get("confirmPassword") || ""),
-      role: "USER" as const, // registro público = user comum; admin fica restrito ao backend
+      dateOfBirth: String(fd.get("dateOfBirth") || ""),
     };
 
     const parsed = registerSchema.safeParse(data);
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+      const first = parsed.error.issues[0]?.message ?? "Dados inválidos.";
+      setError(first);
       return;
     }
 
-    startTransition(async () => {
+    start(async () => {
       try {
-        const res = await api<RegisterResponse>("/auth/register", {
+        // 1) Registrar 
+        await api("/auth/register", {
           method: "POST",
           body: JSON.stringify(parsed.data),
         });
 
-        if (!res.ok) {
-          setError(res.message || "Não foi possível criar sua conta.");
-          return;
+        // 2) Ir para a tela de login com flag de sucesso
+        router.replace("/login?created=1");
+      } catch (err: any) {
+        const msg = String(err?.message || "");
+        if (msg.toLowerCase().includes("unique") || msg.toLowerCase().includes("duplic")) {
+          setError("Este email já está cadastrado.");
+        } else if (msg) {
+          setError(msg);
+        } else {
+          setError("Não foi possível concluir o cadastro.");
         }
-
-        // Após registrar, vai para login
-        router.replace("/login");
-      } catch {
-        setError("Erro de conexão. Tente novamente.");
       }
     });
   }
@@ -60,65 +59,62 @@ export default function RegisterForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <div>
-        <label htmlFor="fullName" className="block mb-2 font-semibold text-[var(--plant-dark)]">
-          Nome Completo
+        <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="fullName">
+          Nome completo
         </label>
         <input
           id="fullName"
           name="fullName"
           type="text"
-          placeholder="Seu nome"
+          placeholder="Maria Silva"
           className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
                      focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
         />
       </div>
 
       <div>
-        <label htmlFor="email" className="block mb-2 font-semibold text-[var(--plant-dark)]">
+        <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="email">
           Email
         </label>
         <input
           id="email"
           name="email"
           type="email"
-          placeholder="você@mail.com"
+          placeholder="user@gmail.com"
           className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
                      focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <label htmlFor="password" className="block mb-2 font-semibold text-[var(--plant-dark)]">
-            Senha
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            placeholder="••••••"
-            className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
-                       focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
-          />
-        </div>
-        <div>
-          <label htmlFor="confirmPassword" className="block mb-2 font-semibold text-[var(--plant-dark)]">
-            Confirme a senha
-          </label>
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            placeholder="••••••"
-            className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
-                       focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
-          />
-        </div>
+      <div>
+        <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="password">
+          Senha
+        </label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="Mínimo de 6 caracteres"
+          className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
+                     focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
+        />
+      </div>
+
+      <div>
+        <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="dateOfBirth">
+          Data de nascimento
+        </label>
+        <input
+          id="dateOfBirth"
+          name="dateOfBirth"
+          type="date"
+          className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
+                     focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
+        />
       </div>
 
       {error && (
-        <p role="alert" aria-live="assertive"
-           className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 border border-red-200">
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 border border-red-200">
           {error}
         </p>
       )}
@@ -128,13 +124,13 @@ export default function RegisterForm() {
         className="btn btn-primary w-full rounded-full py-3 font-bold shadow-md
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--plant-primary)]/30"
       >
-        {pending ? "Criando..." : "Criar Conta"}
+        {pending ? "Criando conta..." : "Criar conta"}
       </button>
 
-      <p className="text-center text-sm text-[var(--plant-graphite)]/70">
-        Já tem a sua conta?{" "}
+      <p className="text-center helper">
+        Já tem uma conta?{" "}
         <Link href="/login" className="font-semibold text-[var(--plant-primary)] hover:underline">
-          Login
+          Entrar
         </Link>
       </p>
     </form>
