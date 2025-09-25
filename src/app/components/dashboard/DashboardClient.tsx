@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRole, type Role } from "@/app/lib/auth.client";
 import { api } from "@/app/lib/http";
+import { sampleRecentPlants, sampleLatestReadings } from "@/app/components/mocks/dashboard/dashboard.mocks";
 
 type Summary = {
   counts: {
@@ -14,31 +15,56 @@ type Summary = {
     successRate: number;
   };
   trend: {
-    plantsMonth: number;    
-    sensorsWeek: number;     
-    successVsMonth: number;  
+    plantsMonth: number;
+    sensorsWeek: number;
+    successVsMonth: number;
   };
+};
+
+const EMPTY_SUMMARY: Summary = {
+  counts: {
+    plants: 0,
+    sensorsOnline: 0,
+    sensorsTotal: 0,
+    alerts: 0,
+    successRate: 0,
+  },
+  trend: {
+    plantsMonth: 0,
+    sensorsWeek: 0,
+    successVsMonth: 0,
+  },
 };
 
 export default function DashboardClient() {
   const role = useRole(); // lê do localStorage (ADMIN | USER)
   const [data, setData] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
+        setErrorMsg(null);
         const res = await api<Summary>(`/dashboard/summary?role=${role}`);
-        if (mounted) setData(res);
-      } catch {
-        if (mounted) setData(null);
+        if (mounted) setData(res ?? null);
+      } catch (e) {
+        if (mounted) {
+          setData(null);
+          setErrorMsg("Falha ao carregar o dashboard.");
+        }
       } finally {
         if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [role]);
+
+
+  const safeData: Summary = data ?? EMPTY_SUMMARY;
 
   return (
     <div className="space-y-6">
@@ -46,7 +72,8 @@ export default function DashboardClient() {
       <section
         className="relative overflow-hidden rounded-2xl bg-[var(--plant-primary)] text-white p-6 md:p-8"
         style={{
-          backgroundImage: "linear-gradient(120deg, rgba(0,0,0,.0), rgba(0,0,0,.15)), url('/login/side.jpg')",
+          backgroundImage:
+            "linear-gradient(120deg, rgba(0,0,0,.0), rgba(0,0,0,.15)), url('/login/side.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -65,7 +92,6 @@ export default function DashboardClient() {
             {role === "ADMIN" ? "Nova Planta" : "Adicionar Planta"}
           </Link>
 
-          {/* Campo fictício (placeholder de busca/scan) */}
           <input
             placeholder="Pesquisar plantas ou sensores..."
             className="w-full sm:w-72 rounded-full bg-white/95 px-4 py-2 text-[var(--plant-graphite)] placeholder:text-black/50 outline-none focus:ring-2 focus:ring-white/50"
@@ -73,26 +99,34 @@ export default function DashboardClient() {
         </div>
       </section>
 
+      {/* MENSAGEM DE ERRO  */}
+      {errorMsg && !loading && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMsg}
+        </div>
+      )}
+
       {/* CARDS */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {(loading ? skeletonCards() : buildCards(data!, role)).map((c) => (
-          <div
-            key={c.key}
-            className="rounded-2xl bg-white border border-black/5 p-4 shadow-sm"
-          >
+        {(loading ? skeletonCards() : buildCards(safeData, role)).map((c) => (
+          <div key={c.key} className="rounded-2xl bg-white border border-black/5 p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold tracking-wide text-[var(--plant-graphite)]/60 uppercase">
                 {c.title}
               </p>
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
-                    style={{ background: "color-mix(in srgb, var(--plant-primary) 15%, white)" }}>
+              <span
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                style={{ background: "color-mix(in srgb, var(--plant-primary) 15%, white)" }}
+              >
                 {c.badge}
               </span>
             </div>
             <div className="mt-3 flex items-end justify-between">
               <div className="text-3xl font-black text-[var(--plant-graphite)]">{c.value}</div>
               <div
-                className={`text-sm font-semibold ${c.delta >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                className={`text-sm font-semibold ${
+                  c.delta >= 0 ? "text-emerald-600" : "text-red-600"
+                }`}
               >
                 {c.delta >= 0 ? "▲" : "▼"} {Math.abs(c.delta)}%
               </div>
@@ -136,8 +170,10 @@ export default function DashboardClient() {
               : sampleLatestReadings(role).map((r) => (
                   <li key={r.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-2.5 w-2.5 rounded-full"
-                           style={{ background: r.ok ? "var(--plant-primary)" : "#e11d48" }} />
+                      <div
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ background: r.ok ? "var(--plant-primary)" : "#e11d48" }}
+                      />
                       <div>
                         <p className="font-medium">
                           {r.plant} — {r.sensor}
@@ -173,7 +209,7 @@ function skeletonLines() {
   ));
 }
 
-/* ---------- conteúdo por papel (mock para UI) ---------- */
+/* ---------- conteúdo por papel ---------- */
 function buildCards(data: Summary, role: Role) {
   const base = [
     {
@@ -195,12 +231,12 @@ function buildCards(data: Summary, role: Role) {
       title: "Alertas ativos",
       value: data.counts.alerts,
       badge: "tempo real",
-      delta: -3, // exemplo (não usado visualmente)
+      delta: -3,
     },
     {
       key: "success",
       title: "Taxa de sucesso",
-      value: `${data.counts.successRate.toFixed(1)}%`,
+      value: `${Number(data.counts.successRate).toFixed(1)}%`,
       badge: `${data.trend.successVsMonth}% vs mês`,
       delta: data.trend.successVsMonth,
     },
@@ -209,33 +245,11 @@ function buildCards(data: Summary, role: Role) {
   if (role === "ADMIN") {
     return base;
   }
-  // USER comum: números “do usuário” 
   return base.map((c) =>
     c.key === "plants"
       ? { ...c, value: Math.max(1, Math.floor(Number(c.value) * 0.2)) }
       : c.key === "sensors"
       ? { ...c, value: "5 de 6" }
-      : c,
+      : c
   );
-}
-
-/* mocks de listas  */
-function sampleRecentPlants(role: Role) {
-  const all = [
-    { id: "p1", name: "Manjericão", species: "Ocimum basilicum", createdAt: "há 2h" },
-    { id: "p2", name: "Hortelã", species: "Mentha spicata", createdAt: "há 1 dia" },
-    { id: "p3", name: "Tomateiro", species: "Solanum lycopersicum", createdAt: "há 3 dias" },
-    { id: "p4", name: "Samambaia", species: "Nephrolepis exaltata", createdAt: "há 5 dias" },
-  ];
-  return role === "ADMIN" ? all : all.slice(0, 3);
-}
-
-function sampleLatestReadings(role: Role) {
-  const all = [
-    { id: "r1", plant: "Manjericão", sensor: "Umidade", value: 58, unit: "%", time: "agora", ok: true },
-    { id: "r2", plant: "Hortelã", sensor: "Temp.", value: 25.3, unit: "°C", time: "há 3m", ok: true },
-    { id: "r3", plant: "Tomateiro", sensor: "pH", value: 6.1, unit: "", time: "há 12m", ok: true },
-    { id: "r4", plant: "Samambaia", sensor: "Luminos.", value: 220, unit: "lx", time: "há 21m", ok: false },
-  ];
-  return role === "ADMIN" ? all : all.slice(0, 3);
 }
