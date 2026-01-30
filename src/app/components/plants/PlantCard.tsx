@@ -1,6 +1,7 @@
 import { Droplets, ThermometerSun, Sun, MapPin, Activity, Cpu} from "lucide-react";
 import type { PlantCardDto } from "@/app/components/mocks/plants/plants.mocks";
 import PlantStatusBadge from "@/app/components/plants/PlantStatusBadge";
+import Link from "next/link";
 
 export default function PlantCard({ plant }: { plant: PlantCardDto }) {
   return (
@@ -46,16 +47,17 @@ export default function PlantCard({ plant }: { plant: PlantCardDto }) {
         <p className="text-xs text-black/45">
           Última leitura: {plant.lastReading}
         </p>
-            <button
-            className="rounded-xl px-5 py-2 text-sm font-semibold
-                        border border-black/25 bg-white text-[var(--plant-graphite)]
-                        shadow-none
-                        transition-colors
-                        hover:bg-black/5
-                        focus:outline-none focus:ring-2 focus:ring-black/10"
-            >
-            Ver detalhes
-            </button>
+        <Link
+          href={`/plants/${plant.id}`}
+          className="rounded-xl px-5 py-2 text-sm font-semibold
+                    border border-black/25 bg-white text-[var(--plant-graphite)]
+                    shadow-none transition-colors
+                    hover:bg-black/5
+                    focus:outline-none focus:ring-2 focus:ring-black/10"
+        >
+          Ver detalhes
+        </Link>
+
       </div>
     </div>
   );
