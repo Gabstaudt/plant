@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 type Props = {
   title: string;
   subtitle?: string;
-  right?: ReactNode; // botão/ações à direita
+  right?: ReactNode; 
 };
 
 export default function PageHeader({ title, subtitle, right }: Props) {
@@ -20,7 +21,15 @@ export default function PageHeader({ title, subtitle, right }: Props) {
         )}
       </div>
 
-      {right ? <div className="shrink-0">{right}</div> : null}
+        right={
+        <Link href="/plants/new" className="btn btn-primary rounded-full px-5 py-2">
+          <span className="inline-flex -ml-1 mr-1 w-5 h-5 items-center justify-center">
+            ＋
+          </span>
+          Nova Planta
+        </Link>
+      }
+
     </div>
   );
 }

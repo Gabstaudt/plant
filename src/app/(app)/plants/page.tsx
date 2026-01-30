@@ -2,6 +2,7 @@ import PageHeader from "@/app/components/layout/PageHeader";
 import PlantsToolbar from "@/app/components/plants/PlantsToolbar";
 import PlantCard from "@/app/components/plants/PlantCard";
 import { samplePlants } from "@/app/components/mocks/plants/plants.mocks";
+import Link from "next/link";
 
 export default function PlantsPage() {
   return (
