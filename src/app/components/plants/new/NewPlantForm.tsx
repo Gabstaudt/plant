@@ -28,6 +28,12 @@ type FormState = {
   idealNotes: string;
 };
 
+type Props = {
+  mode?: "create" | "edit";
+  defaultValues?: Partial<FormState>;
+  onSubmitSuccess?: () => void;
+};
+
 const initial: FormState = {
   name: "",
   species: "",
@@ -46,8 +52,12 @@ const initial: FormState = {
   idealNotes: "",
 };
 
-export default function NewPlantForm() {
-  const [form, setForm] = useState<FormState>(initial);
+export default function NewPlantForm({
+  mode = "create",
+  defaultValues,
+  onSubmitSuccess,
+}: Props) {
+  const [form, setForm] = useState<FormState>({ ...initial, ...defaultValues });
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -90,7 +100,6 @@ export default function NewPlantForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // marca campos obrigatórios como tocados
     markTouched("name");
     markTouched("species");
     markTouched("location");
@@ -100,16 +109,20 @@ export default function NewPlantForm() {
     setSubmitting(true);
 
     try {
-      // TODO: substituir por chamada real do backend
       await new Promise((r) => setTimeout(r, 600));
 
-      // Aqui você pode: router.push("/plants") depois de integrar
-      // Por enquanto só log:
-      console.log("Nova planta:", form);
+      if (mode === "edit") {
+        console.log("Editar planta:", form);
+        alert("Alterações salvas (mock) ✅");
+        onSubmitSuccess?.();
+        return;
+      }
 
+      console.log("Nova planta:", form);
       alert("Planta cadastrada (mock) ✅");
       setForm(initial);
       setTouched({});
+      onSubmitSuccess?.();
     } finally {
       setSubmitting(false);
     }
@@ -131,17 +144,22 @@ export default function NewPlantForm() {
 
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-[var(--plant-graphite)]">
-              Nova Planta
+              {mode === "edit" ? "Editar Planta" : "Nova Planta"}
             </h1>
             <p className="mt-1 text-sm text-black/55">
-              Cadastre uma nova planta no sistema
+              {mode === "edit"
+                ? "Edite as informações da planta"
+                : "Cadastre uma nova planta no sistema"}
             </p>
           </div>
         </div>
       </div>
 
       {/* Seção 1 */}
-      <FormSection title="Informações Básicas" icon={<Sprout className="h-5 w-5 text-[var(--plant-primary)]" />}>
+      <FormSection
+        title="Informações Básicas"
+        icon={<Sprout className="h-5 w-5 text-[var(--plant-primary)]" />}
+      >
         <div className="grid gap-4 md:grid-cols-2">
           <TextField
             label="Nome da Planta*"
@@ -185,7 +203,10 @@ export default function NewPlantForm() {
       </FormSection>
 
       {/* Seção 2 */}
-      <FormSection title="Condições Ideais" icon={<Sprout className="h-5 w-5 text-[var(--plant-primary)]" />}>
+      <FormSection
+        title="Condições Ideais"
+        icon={<Sprout className="h-5 w-5 text-[var(--plant-primary)]" />}
+      >
         <div className="grid gap-4 md:grid-cols-2">
           <RangeField
             label="Temperatura (°C)"
@@ -251,7 +272,13 @@ export default function NewPlantForm() {
             !canSubmit ? "opacity-60 cursor-not-allowed" : "hover:opacity-95",
           ].join(" ")}
         >
-          {submitting ? "Cadastrando..." : "Cadastrar Planta"}
+          {submitting
+            ? mode === "edit"
+              ? "Salvando..."
+              : "Cadastrando..."
+            : mode === "edit"
+            ? "Salvar Alterações"
+            : "Cadastrar Planta"}
         </button>
       </div>
     </form>

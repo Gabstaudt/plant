@@ -1,3 +1,15 @@
+"use client";
+
+type Props = {
+  label: string;
+  placeholder?: string;
+  value: string;
+  onChange: (v: string) => void;
+  onBlur?: () => void;
+  error?: string;
+  disabled?: boolean; // ✅ ADICIONAR
+};
+
 export default function TextField({
   label,
   placeholder,
@@ -5,32 +17,31 @@ export default function TextField({
   onChange,
   onBlur,
   error,
-}: {
-  label: string;
-  placeholder?: string;
-  value: string;
-  onChange: (v: string) => void;
-  onBlur?: () => void;
-  error?: string;
-}) {
+  disabled, // ✅ ADICIONAR
+}: Props) {
   return (
-    <div>
-      <label className="block text-sm font-semibold text-[var(--plant-graphite)]">
+    <label className="block">
+      <span className="text-sm font-semibold text-[var(--plant-graphite)]">
         {label}
-      </label>
+      </span>
+
       <input
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
+        disabled={disabled} 
         className={[
-          "mt-2 w-full rounded-xl border bg-white px-4 py-2.5 text-sm outline-none",
-          error
-            ? "border-red-300 focus:ring-2 focus:ring-red-200"
-            : "border-black/10 focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30",
+          "mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-colors",
+          "border-black/10 bg-white",
+          error ? "border-red-300" : "focus:border-[var(--plant-primary)]",
+          disabled ? "bg-black/5 text-black/50 cursor-not-allowed" : "",
         ].join(" ")}
       />
-      {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
-    </div>
+
+      {error ? (
+        <p className="mt-1 text-xs text-red-500">{error}</p>
+      ) : null}
+    </label>
   );
 }

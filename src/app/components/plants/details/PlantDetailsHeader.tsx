@@ -8,10 +8,10 @@ export default function PlantDetailsHeader({
   onEditHref,
 }: {
   plant: PlantCardDto & {
-    createdAt?: string; // "15/01/2024"
+    createdAt?: string; 
   };
   backHref: string;
-  onEditHref?: string; // se quiser no futuro
+  onEditHref?: string; 
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
@@ -53,9 +53,12 @@ export default function PlantDetailsHeader({
         </div>
       </div>
 
-      <button className="btn btn-primary rounded-full px-6 py-2">
-        Editar
-      </button>
+        <Link
+          href={`/plants/${plant.id}/edit`}
+          className="btn btn-primary rounded-full px-6 py-2"
+        >
+          Editar
+        </Link>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Cpu } from "lucide-react";
 
-import FormSection from "@/app/components/plants/new/FormSection"; 
+import FormSection from "@/app/components/plants/new/FormSection";
 import TextField from "@/app/components/plants/new/fields/TextField";
 import SelectField from "@/app/components/plants/new/fields/SelectField";
 import TextAreaField from "@/app/components/plants/new/fields/TextAreaField";
@@ -23,6 +23,12 @@ type FormState = {
   alertsEnabled: boolean;
   alertMin: string;
   alertMax: string;
+};
+
+type Props = {
+  mode?: "create" | "edit";
+  defaultValues?: Partial<FormState>;
+  onSubmitSuccess?: () => void;
 };
 
 const initial: FormState = {
@@ -68,8 +74,12 @@ function Toggle({
   );
 }
 
-export default function NewSensorForm() {
-  const [form, setForm] = useState<FormState>(initial);
+export default function NewSensorForm({
+  mode = "create",
+  defaultValues,
+  onSubmitSuccess,
+}: Props) {
+  const [form, setForm] = useState<FormState>({ ...initial, ...defaultValues });
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -118,7 +128,6 @@ export default function NewSensorForm() {
     setTouched((p) => ({ ...p, [key]: true }));
   }
 
-  // obrigatórios do print
   const errors = {
     name: !form.name.trim() ? "Informe o nome do sensor." : "",
     code: !form.code.trim() ? "Informe o ID do sensor." : "",
@@ -127,11 +136,7 @@ export default function NewSensorForm() {
   };
 
   const canSubmit =
-    !errors.name &&
-    !errors.code &&
-    !errors.type &&
-    !errors.location &&
-    !submitting;
+    !errors.name && !errors.code && !errors.type && !errors.location && !submitting;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -145,18 +150,25 @@ export default function NewSensorForm() {
 
     setSubmitting(true);
     try {
-      // TODO: integrar API
       await new Promise((r) => setTimeout(r, 600));
+
+      if (mode === "edit") {
+        console.log("Editar sensor:", form);
+        alert("Alterações salvas (mock) ✅");
+        onSubmitSuccess?.();
+        return;
+      }
+
       console.log("Novo sensor:", form);
       alert("Sensor cadastrado (mock) ✅");
       setForm(initial);
       setTouched({});
+      onSubmitSuccess?.();
     } finally {
       setSubmitting(false);
     }
   }
 
-  // placeholder do print: limites só fazem sentido após selecionar tipo
   const alertHint =
     form.type === ""
       ? "Selecione um tipo de sensor para configurar os limites de alerta"
@@ -178,10 +190,12 @@ export default function NewSensorForm() {
 
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-[var(--plant-graphite)]">
-              Novo Sensor
+              {mode === "edit" ? "Editar Sensor" : "Novo Sensor"}
             </h1>
             <p className="mt-1 text-sm text-black/55">
-              Adicione um novo sensor ao sistema
+              {mode === "edit"
+                ? "Edite as configurações do sensor"
+                : "Adicione um novo sensor ao sistema"}
             </p>
           </div>
         </div>
@@ -209,6 +223,7 @@ export default function NewSensorForm() {
             onChange={(v) => update("code", v)}
             onBlur={() => markTouched("code")}
             error={touched.code ? errors.code : ""}
+            disabled={mode === "edit"}
           />
 
           <SelectField
@@ -285,7 +300,6 @@ export default function NewSensorForm() {
           </div>
         </div>
 
-        {/* quando habilitar, mostra limites */}
         {form.alertsEnabled && form.type !== "" && (
           <div className="mt-4 max-w-[520px]">
             <RangeField
@@ -320,7 +334,13 @@ export default function NewSensorForm() {
             !canSubmit ? "opacity-60 cursor-not-allowed" : "hover:opacity-95",
           ].join(" ")}
         >
-          {submitting ? "Cadastrando..." : "Cadastrar Sensor"}
+          {submitting
+            ? mode === "edit"
+              ? "Salvando..."
+              : "Cadastrando..."
+            : mode === "edit"
+            ? "Salvar Alterações"
+            : "Cadastrar Sensor"}
         </button>
       </div>
     </form>

@@ -82,10 +82,12 @@ export default function SensorDetailsHeader({
         </div>
       </div>
 
-      <button className="btn btn-primary rounded-full px-6 py-2 inline-flex items-center gap-2">
-        <Pencil className="h-4 w-4" />
+      <Link
+        href={`/sensors/${sensor.id}/edit`}
+        className="btn btn-primary rounded-full px-6 py-2"
+      >
         Editar
-      </button>
+      </Link>
     </div>
   );
 }
