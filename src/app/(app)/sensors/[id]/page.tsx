@@ -8,9 +8,11 @@ import SensorCurrentReadingCard from "@/app/components/sensors/details/SensorCur
 import SensorDetailsTabs from "@/app/components/sensors/details/SensorDetailsTabs";
 import SensorSettingsPanel from "@/app/components/sensors/details/SensorSettingsPanel";
 
-import {
-  sampleSensorDetails,
-} from "@/app/components/mocks/sensors/sensors.mocks";
+import SensorOverviewPanel from "@/app/components/sensors/details/SensorOverviewPanel";
+import SensorReadingsPanel from "@/app/components/sensors/details/SensorReadingsPanel";
+import SensorAlertsPanel from "@/app/components/sensors/details/SensorAlertsPanel";
+
+import { sampleSensorDetails } from "@/app/components/mocks/sensors/sensors.mocks";
 
 type Tab = "overview" | "readings" | "alerts" | "settings";
 
@@ -39,14 +41,11 @@ export default function SensorDetailsPage() {
 
       <SensorDetailsTabs tab={tab} onChange={setTab} />
 
-      {/* Conteúdo das tabs (por enquanto vamos focar na Configurações, como você pediu) */}
-      {tab === "settings" ? (
-        <SensorSettingsPanel sensor={sensor} />
-      ) : (
-        <div className="mt-4 rounded-2xl border border-black/10 bg-white p-6 text-black/45">
-          Conteúdo da aba “{tab}” (placeholder)
-        </div>
-      )}
+      {/* Conteúdo das tabs */}
+      {tab === "overview" && <SensorOverviewPanel sensor={sensor} />}
+      {tab === "readings" && <SensorReadingsPanel sensor={sensor} />}
+      {tab === "alerts" && <SensorAlertsPanel sensor={sensor} />}
+      {tab === "settings" && <SensorSettingsPanel sensor={sensor} />}
     </div>
   );
 }

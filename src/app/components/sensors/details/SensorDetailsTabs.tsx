@@ -25,10 +25,11 @@ export default function SensorDetailsTabs({
             key={i.key}
             type="button"
             onClick={() => onChange(i.key)}
+            aria-current={active ? "page" : undefined}
             className={[
               "px-4 py-2 text-sm font-semibold rounded-xl transition-colors",
               active
-                ? "bg-white text-[var(--plant-graphite)] shadow-sm"
+                ? "bg-white text-[var(--plant-graphite)]"
                 : "text-black/45 hover:text-[var(--plant-graphite)]",
             ].join(" ")}
           >
