@@ -1,69 +1,124 @@
 import Link from "next/link";
+import {
+  Thermometer,
+  Droplet,
+  Sun,
+  Wifi,
+  BatteryFull,
+} from "lucide-react";
 import type { SensorCardDto } from "@/app/components/mocks/sensors/sensors.mocks";
-import { Cpu } from "lucide-react";
 
-function statusBadge(status: SensorCardDto["status"]) {
-  if (status === "ONLINE") return "bg-green-100 text-green-700";
-  if (status === "ATENCAO") return "bg-yellow-100 text-yellow-800";
-  return "bg-gray-100 text-gray-700";
+function SensorIcon({ type }: { type: SensorCardDto["type"] }) {
+  if (type === "UMIDADE") return <Droplet className="h-5 w-5 text-green-600" />;
+  if (type === "LUMINOSIDADE") return <Sun className="h-5 w-5 text-yellow-500" />;
+  return <Thermometer className="h-5 w-5 text-green-600" />;
 }
 
-function statusLabel(status: SensorCardDto["status"]) {
-  if (status === "ONLINE") return "Online";
-  if (status === "ATENCAO") return "Atenção";
-  return "Offline";
+function StatusBadge({ status }: { status: SensorCardDto["status"] }) {
+  if (status === "ONLINE") {
+    return (
+      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+        Online
+      </span>
+    );
+  }
+
+  if (status === "ATENCAO") {
+    return (
+      <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+        Atenção
+      </span>
+    );
+  }
+
+  return (
+    <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+      Offline
+    </span>
+  );
 }
 
 export default function SensorCard({ sensor }: { sensor: SensorCardDto }) {
   return (
-    <div className="rounded-2xl border border-black/10 bg-white p-4">
+    <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+      {/* Header */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-[var(--plant-primary)]/10 grid place-items-center">
-            <Cpu className="h-5 w-5 text-[var(--plant-primary)]" />
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100">
+            <SensorIcon type={sensor.type} />
           </div>
+
           <div>
-            <div className="font-extrabold text-[var(--plant-graphite)]">
+            <h3 className="font-extrabold text-[var(--plant-graphite)]">
               {sensor.name}
-            </div>
-            <div className="text-sm text-black/45">{sensor.code}</div>
+            </h3>
+            <p className="text-sm text-black/45">{sensor.code}</p>
           </div>
         </div>
 
-        <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusBadge(sensor.status)}`}>
-          {statusLabel(sensor.status)}
-        </span>
+        <StatusBadge status={sensor.status} />
       </div>
 
-      <div className="mt-4 flex items-end justify-between">
-        <div className="text-sm text-black/45">
-          {sensor.plantName ? (
-            <div className="flex items-center gap-2">
-              <span>Vinculado:</span>
-              {sensor.plantId ? (
-                <Link
-                  href={`/plants/${sensor.plantId}`}
-                  className="font-semibold text-[var(--plant-primary)] hover:underline"
-                >
-                  {sensor.plantName}
-                </Link>
-              ) : (
-                <span className="font-semibold">{sensor.plantName}</span>
-              )}
-            </div>
-          ) : (
-            <span>Sem vínculo</span>
-          )}
+      {/* Infos */}
+      <div className="mt-4 grid grid-cols-2 gap-y-2 text-sm">
+        <span className="text-black/45">Tipo:</span>
+        <span className="font-medium text-right">
+          {sensor.type === "TEMPERATURA"
+            ? "Temperatura"
+            : sensor.type === "UMIDADE"
+            ? "Umidade"
+            : "Luminosidade"}
+        </span>
 
-          <div className="mt-1 text-xs text-black/35">Atualizado: {sensor.updatedAt}</div>
+        <span className="text-black/45">Localização:</span>
+        <span className="font-medium text-right">
+          {sensor.locationLabel}
+        </span>
+
+        {sensor.plantName && (
+          <>
+            <span className="text-black/45">Planta:</span>
+            <Link
+              href={`/plants/${sensor.plantId}`}
+              className="text-right font-semibold text-[var(--plant-primary)] hover:underline"
+            >
+              {sensor.plantName}
+            </Link>
+          </>
+        )}
+      </div>
+
+      {/* Valor central */}
+      <div className="mt-5 rounded-xl bg-black/[0.02] py-4 text-center">
+        <div className="text-3xl font-extrabold text-[var(--plant-graphite)]">
+          {sensor.lastValue}
+          {sensor.unit}
+        </div>
+        <div className="mt-1 text-xs text-black/45">
+          {sensor.updatedAt}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-4 flex items-center justify-between border-t border-black/5 pt-4">
+        <div className="flex items-center gap-4 text-sm text-black/60">
+          <span className="flex items-center gap-1">
+            <BatteryFull className="h-4 w-4" />
+            87%
+          </span>
+
+          <span className="flex items-center gap-1">
+            <Wifi className="h-4 w-4" />
+            85%
+          </span>
         </div>
 
-        <div className="text-right">
-          <div className="text-2xl font-extrabold text-[var(--plant-graphite)] leading-none">
-            {sensor.lastValue}
-            <span className="text-sm font-bold text-black/45 ml-1">{sensor.unit}</span>
-          </div>
-        </div>
+        <Link
+          href={`/sensors/${sensor.id}`}
+          className="rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5"
+        >
+          Configurar
+        </Link>
       </div>
     </div>
   );

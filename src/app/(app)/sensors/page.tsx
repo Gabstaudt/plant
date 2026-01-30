@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 import PageHeader from "@/app/components/layout/PageHeader";
 import SensorsToolbar, { type SensorsQuickFilters } from "@/app/components/sensors/SensorsToolbar";
@@ -18,7 +19,7 @@ export default function SensorsPage() {
   const [quick, setQuick] = useState<SensorsQuickFilters>(initialQuick);
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(9);
+  const [pageSize, setPageSize] = useState(6); // print parece 2 colunas -> 6 fica legal
 
   const filtered = useMemo(() => {
     const q = quick.query.trim().toLowerCase();
@@ -28,6 +29,7 @@ export default function SensorsPage() {
         const match =
           s.name.toLowerCase().includes(q) ||
           s.code.toLowerCase().includes(q) ||
+          s.locationLabel.toLowerCase().includes(q) ||
           (s.plantName ? s.plantName.toLowerCase().includes(q) : false);
 
         if (!match) return false;
@@ -51,7 +53,13 @@ export default function SensorsPage() {
     <div className="p-4 md:p-6">
       <PageHeader
         title="Sensores"
-        subtitle="Gerencie e monitore todos os sensores cadastrados"
+        subtitle="Inventário e status de todos os sensores"
+        right={
+          <Link href="/sensors/new" className="btn btn-primary rounded-full px-5 py-2">
+            <span className="inline-flex -ml-1 mr-1 w-5 h-5 items-center justify-center">＋</span>
+            Novo Sensor
+          </Link>
+        }
       />
 
       <SensorsToolbar
@@ -62,7 +70,7 @@ export default function SensorsPage() {
         }}
       />
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
         {paged.map((s) => (
           <SensorCard key={s.id} sensor={s} />
         ))}
