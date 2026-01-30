@@ -59,13 +59,19 @@ export default function Sidebar({ initialRole }: { initialRole?: Role }) {
       {open && <div className="md:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setOpen(false)} />}
 
       {/* Sidebar */}
-      <aside
-        className={[
-          "fixed z-50 md:z-0 md:static md:translate-x-0",
-          "inset-y-0 left-0 w-72 bg-[var(--plant-ice)] border-r border-black/5",
-          "transition-transform", open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-        ].join(" ")}
-      >
+        <aside
+          className={[
+            // MOBILE: drawer (continua igual)
+            "fixed z-50 inset-y-0 left-0 w-72",
+            "bg-[var(--plant-ice)] border-r border-black/5",
+            "transition-transform",
+            open ? "translate-x-0" : "-translate-x-full",
+
+            // DESKTOP: fixa e não rola
+            "md:translate-x-0 md:top-0 md:left-0 md:h-dvh md:fixed md:z-40",
+          ].join(" ")}
+        >
+
         <div className="flex items-center gap-3 px-4 py-4">
           <img src="/logo.png" alt="Logo" className="h-9 w-auto" />
           <span className="text-[var(--plant-dark)] font-extrabold text-lg">NOME AQUI</span>
