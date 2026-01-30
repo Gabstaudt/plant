@@ -7,16 +7,17 @@ import Link from "next/link";
 export default function PlantsPage() {
   return (
     <div className="p-4 md:p-6">
-      <PageHeader
-        title="Plantas"
-        subtitle="Gerencie e monitore todas as plantas cadastradas"
-        right={
-          <button className="btn btn-primary rounded-full px-5 py-2">
-            <span className="inline-flex -ml-1 mr-1 w-5 h-5 items-center justify-center">＋</span>
-            Nova Planta
-          </button>
-        }
-      />
+        <PageHeader
+          title="Plantas"
+          subtitle="Gerencie e monitore todas as plantas cadastradas"
+          right={
+            <Link href="/plants/new" className="btn btn-primary rounded-full px-5 py-2">
+              <span className="inline-flex -ml-1 mr-1 w-5 h-5 items-center justify-center">＋</span>
+              Nova Planta
+            </Link>
+          }
+        />
+
 
       <PlantsToolbar />
 
