@@ -50,7 +50,7 @@ export default function Sidebar({ initialRole }: { initialRole?: Role }) {
         </button>
         <Link href="/dashboard" className="inline-flex items-center gap-2">
           <img src="/logo.png" alt="Logo" className="h-7 w-auto" />
-          <span className="text-[var(--plant-dark)] font-extrabold">NOME AQUI</span>
+          <span className="text-[var(--plant-dark)] font-extrabold">Plant Connect</span>
         </Link>
         <div className="w-6" />
       </div>
