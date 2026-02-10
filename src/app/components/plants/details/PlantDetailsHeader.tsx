@@ -1,17 +1,25 @@
 import Link from "next/link";
 import { Calendar, MapPin, Cpu } from "lucide-react";
-import type { PlantCardDto } from "@/app/components/mocks/plants/plants.mocks";
 
 export default function PlantDetailsHeader({
   plant,
   backHref,
   onEditHref,
+  onDelete,
+  deleteDisabled,
 }: {
-  plant: PlantCardDto & {
-    createdAt?: string; 
+  plant: {
+    id: string;
+    name: string;
+    species: string;
+    locationLabel: string;
+    sensorsCount: number;
+    createdAt?: string;
   };
   backHref: string;
-  onEditHref?: string; 
+  onEditHref?: string;
+  onDelete?: () => void;
+  deleteDisabled?: boolean;
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
@@ -44,21 +52,37 @@ export default function PlantDetailsHeader({
 
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              <span>
-                Cadastrada em{" "}
-                {plant.createdAt ? plant.createdAt : "—"}
-              </span>
+              <span>Cadastrada em {plant.createdAt ? plant.createdAt : "—"}</span>
             </div>
           </div>
         </div>
       </div>
 
-        <Link
-          href={`/plants/${plant.id}/edit`}
-          className="btn btn-primary rounded-full px-6 py-2"
-        >
-          Editar
-        </Link>
+      <div className="flex items-center gap-2">
+        {onEditHref ? (
+          <Link
+            href={onEditHref}
+            className="btn btn-primary rounded-full px-6 py-2"
+          >
+            Editar
+          </Link>
+        ) : null}
+
+        {onDelete ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleteDisabled}
+            className={[
+              "rounded-full px-6 py-2 text-sm font-semibold border",
+              "border-red-200 text-red-700 bg-red-50",
+              deleteDisabled ? "opacity-60 cursor-not-allowed" : "hover:bg-red-100",
+            ].join(" ")}
+          >
+            Excluir
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

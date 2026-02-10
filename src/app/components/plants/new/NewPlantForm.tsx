@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sprout } from "lucide-react";
 
 import FormSection from "./FormSection";
@@ -9,6 +9,11 @@ import TextField from "./fields/TextField";
 import SelectField from "./fields/SelectField";
 import TextAreaField from "./fields/TextAreaField";
 import RangeField from "./fields/RangeField";
+import {
+  createPlant,
+  updatePlant,
+  type CreatePlantPayload,
+} from "@/app/lib/plants.api";
 
 type FormState = {
   name: string;
@@ -30,6 +35,7 @@ type FormState = {
 
 type Props = {
   mode?: "create" | "edit";
+  plantId?: string | number;
   defaultValues?: Partial<FormState>;
   onSubmitSuccess?: () => void;
 };
@@ -54,32 +60,44 @@ const initial: FormState = {
 
 export default function NewPlantForm({
   mode = "create",
+  plantId,
   defaultValues,
   onSubmitSuccess,
 }: Props) {
   const [form, setForm] = useState<FormState>({ ...initial, ...defaultValues });
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
 
-  const speciesOptions = useMemo(
-    () => [
+  useEffect(() => {
+    setForm({ ...initial, ...defaultValues });
+  }, [defaultValues]);
+
+  const speciesOptions = useMemo(() => {
+    const base = [
       { value: "solanum-lycopersicum", label: "Tomate (Solanum lycopersicum)" },
       { value: "vinca", label: "Vinca" },
       { value: "rosa-do-deserto", label: "Rosa-do-deserto" },
       { value: "rosas", label: "Rosas" },
       { value: "orquidea", label: "Orquídea" },
-    ],
-    []
-  );
+    ];
+    if (form.species && !base.some((o) => o.value === form.species)) {
+      return [{ value: form.species, label: form.species }, ...base];
+    }
+    return base;
+  }, [form.species]);
 
-  const locationOptions = useMemo(
-    () => [
-      { value: "estufa-a-setor-1", label: "Estufa A - Setor 1" },
-      { value: "estufa-a-setor-2", label: "Estufa A - Setor 2" },
-      { value: "estufa-b-setor-1", label: "Estufa B - Setor 1" },
-    ],
-    []
-  );
+  const locationOptions = useMemo(() => {
+    const base = [
+      { value: "Estufa A - Setor 1", label: "Estufa A - Setor 1" },
+      { value: "Estufa A - Setor 2", label: "Estufa A - Setor 2" },
+      { value: "Estufa B - Setor 1", label: "Estufa B - Setor 1" },
+    ];
+    if (form.location && !base.some((o) => o.value === form.location)) {
+      return [{ value: form.location, label: form.location }, ...base];
+    }
+    return base;
+  }, [form.location]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -103,26 +121,42 @@ export default function NewPlantForm({
     markTouched("name");
     markTouched("species");
     markTouched("location");
+    setError(null);
 
     if (!canSubmit) return;
 
     setSubmitting(true);
 
     try {
-      await new Promise((r) => setTimeout(r, 600));
+      const payload: CreatePlantPayload = {
+        plantName: form.name.trim(),
+        species: form.species,
+        location: form.location,
+        notes: emptyToUndefined(form.notes),
+        notesConditions: emptyToUndefined(form.idealNotes),
+        tempMin: toNumberOrUndefined(form.idealTempMin),
+        tempMax: toNumberOrUndefined(form.idealTempMax),
+        umiMin: toNumberOrUndefined(form.idealHumidityMin),
+        umiMax: toNumberOrUndefined(form.idealHumidityMax),
+        lightMin: toNumberOrUndefined(form.idealLightMin),
+        lightMax: toNumberOrUndefined(form.idealLightMax),
+        phMin: toNumberOrUndefined(form.idealPhMin),
+        phMax: toNumberOrUndefined(form.idealPhMax),
+      };
 
       if (mode === "edit") {
-        console.log("Editar planta:", form);
-        alert("Alterações salvas (mock) ✅");
+        if (!plantId) throw new Error("ID da planta não encontrado.");
+        await updatePlant(plantId, payload);
         onSubmitSuccess?.();
         return;
       }
 
-      console.log("Nova planta:", form);
-      alert("Planta cadastrada (mock) ✅");
+      await createPlant(payload);
       setForm(initial);
       setTouched({});
       onSubmitSuccess?.();
+    } catch (err: any) {
+      setError(err?.message || "Erro ao salvar. Tente novamente.");
     } finally {
       setSubmitting(false);
     }
@@ -130,7 +164,6 @@ export default function NewPlantForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Link
@@ -155,7 +188,12 @@ export default function NewPlantForm({
         </div>
       </div>
 
-      {/* Seção 1 */}
+      {error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
+
       <FormSection
         title="Informações Básicas"
         icon={<Sprout className="h-5 w-5 text-[var(--plant-primary)]" />}
@@ -202,7 +240,6 @@ export default function NewPlantForm({
         </div>
       </FormSection>
 
-      {/* Seção 2 */}
       <FormSection
         title="Condições Ideais"
         icon={<Sprout className="h-5 w-5 text-[var(--plant-primary)]" />}
@@ -251,7 +288,6 @@ export default function NewPlantForm({
         </div>
       </FormSection>
 
-      {/* Footer botões */}
       <div className="flex items-center justify-end gap-3">
         <Link
           href="/plants"
@@ -283,4 +319,16 @@ export default function NewPlantForm({
       </div>
     </form>
   );
+}
+
+function emptyToUndefined(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function toNumberOrUndefined(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const n = Number(trimmed.replace(",", "."));
+  return Number.isFinite(n) ? n : undefined;
 }
