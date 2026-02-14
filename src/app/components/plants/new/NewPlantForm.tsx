@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Sprout } from "lucide-react";
+import { Plus, Sprout, Trash2 } from "lucide-react";
 
 import FormSection from "./FormSection";
 import TextField from "./fields/TextField";
-import SelectField from "./fields/SelectField";
 import TextAreaField from "./fields/TextAreaField";
-import RangeField from "./fields/RangeField";
+import ComboField from "./fields/ComboField";
 import {
   createPlant,
+  listPlantOptions,
   updatePlant,
   type CreatePlantPayload,
+  type PlantOptionsResponse,
 } from "@/app/lib/plants.api";
 
 type FormState = {
@@ -20,17 +21,16 @@ type FormState = {
   species: string;
   location: string;
   notes: string;
-
-  idealTempMin: string;
-  idealTempMax: string;
-  idealHumidityMin: string;
-  idealHumidityMax: string;
-  idealLightMin: string;
-  idealLightMax: string;
-  idealPhMin: string;
-  idealPhMax: string;
-
   idealNotes: string;
+  idealRanges: RangeRow[];
+};
+
+type RangeRow = {
+  id: string;
+  type: string;
+  unit: string;
+  min: string;
+  max: string;
 };
 
 type Props = {
@@ -40,23 +40,7 @@ type Props = {
   onSubmitSuccess?: () => void;
 };
 
-const initial: FormState = {
-  name: "",
-  species: "",
-  location: "",
-  notes: "",
-
-  idealTempMin: "20",
-  idealTempMax: "28",
-  idealHumidityMin: "60",
-  idealHumidityMax: "80",
-  idealLightMin: "70",
-  idealLightMax: "90",
-  idealPhMin: "6.0",
-  idealPhMax: "7.0",
-
-  idealNotes: "",
-};
+const initial: FormState = buildInitialForm();
 
 export default function NewPlantForm({
   mode = "create",
@@ -64,40 +48,89 @@ export default function NewPlantForm({
   defaultValues,
   onSubmitSuccess,
 }: Props) {
-  const [form, setForm] = useState<FormState>({ ...initial, ...defaultValues });
+  const [form, setForm] = useState<FormState>(
+    buildInitialForm(defaultValues)
+  );
+  const [options, setOptions] = useState<PlantOptionsResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setForm({ ...initial, ...defaultValues });
+    setForm(buildInitialForm(defaultValues));
   }, [defaultValues]);
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await listPlantOptions();
+        if (active) setOptions(res);
+      } catch {
+        if (active) setOptions(null);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function addOptionValue(list: string[], value?: string) {
+    const v = value?.trim();
+    if (!v) return list;
+    const exists = list.some((x) => x.trim().toLowerCase() === v.toLowerCase());
+    return exists ? list : [v, ...list];
+  }
+
+  function updateLocalOptions(payload: CreatePlantPayload) {
+    const types: string[] = [];
+    const units: string[] = [];
+    (payload.idealRanges ?? []).forEach((r) => {
+      if (r.type && !types.includes(r.type)) types.push(r.type);
+      if (r.unit && !units.includes(r.unit)) units.push(r.unit);
+    });
+
+    setOptions((prev) => {
+      if (!prev) {
+        return {
+          species: payload.species ? [payload.species] : [],
+          locations: payload.location ? [payload.location] : [],
+          types,
+          units,
+        };
+      }
+      return {
+        species: addOptionValue(prev.species, payload.species),
+        locations: addOptionValue(prev.locations, payload.location),
+        types: mergeUnitList(prev.types, types),
+        units: mergeUnitList(prev.units, units),
+      };
+    });
+  }
+
   const speciesOptions = useMemo(() => {
-    const base = [
-      { value: "solanum-lycopersicum", label: "Tomate (Solanum lycopersicum)" },
-      { value: "vinca", label: "Vinca" },
-      { value: "rosa-do-deserto", label: "Rosa-do-deserto" },
-      { value: "rosas", label: "Rosas" },
-      { value: "orquidea", label: "Orquídea" },
-    ];
-    if (form.species && !base.some((o) => o.value === form.species)) {
-      return [{ value: form.species, label: form.species }, ...base];
+    const merged = toOptions(options?.species ?? []);
+    if (form.species && !hasValue(merged, form.species)) {
+      merged.unshift({ value: form.species, label: form.species });
     }
-    return base;
-  }, [form.species]);
+    return merged;
+  }, [form.species, options]);
 
   const locationOptions = useMemo(() => {
-    const base = [
-      { value: "Estufa A - Setor 1", label: "Estufa A - Setor 1" },
-      { value: "Estufa A - Setor 2", label: "Estufa A - Setor 2" },
-      { value: "Estufa B - Setor 1", label: "Estufa B - Setor 1" },
-    ];
-    if (form.location && !base.some((o) => o.value === form.location)) {
-      return [{ value: form.location, label: form.location }, ...base];
+    const merged = toOptions(options?.locations ?? []);
+    if (form.location && !hasValue(merged, form.location)) {
+      merged.unshift({ value: form.location, label: form.location });
     }
-    return base;
-  }, [form.location]);
+    return merged;
+  }, [form.location, options]);
+
+  const typeOptions = useMemo(() => {
+    return toOptions(options?.types ?? []);
+  }, [options]);
+
+  const unitOptions = useMemo(() => {
+    return toOptions(options?.units ?? []);
+  }, [options]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -109,11 +142,41 @@ export default function NewPlantForm({
 
   const errors = {
     name: !form.name.trim() ? "Informe o nome da planta." : "",
-    species: !form.species ? "Selecione a espécie." : "",
-    location: !form.location ? "Selecione a localização." : "",
+    species: !form.species.trim() ? "Informe a espécie." : "",
+    location: !form.location.trim() ? "Informe a localização." : "",
   };
 
   const canSubmit = !errors.name && !errors.species && !errors.location && !submitting;
+
+  function addRange() {
+    setForm((p) => ({
+      ...p,
+      idealRanges: [
+        ...p.idealRanges,
+        { id: createId(), type: "", unit: "", min: "", max: "" },
+      ],
+    }));
+  }
+
+  function removeRange(id: string) {
+    setForm((p) => ({
+      ...p,
+      idealRanges: p.idealRanges.filter((r) => r.id !== id),
+    }));
+  }
+
+  function updateRange(
+    id: string,
+    key: "type" | "unit" | "min" | "max",
+    value: string
+  ) {
+    setForm((p) => ({
+      ...p,
+      idealRanges: p.idealRanges.map((r) =>
+        r.id === id ? { ...r, [key]: value } : r
+      ),
+    }));
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -130,28 +193,23 @@ export default function NewPlantForm({
     try {
       const payload: CreatePlantPayload = {
         plantName: form.name.trim(),
-        species: form.species,
-        location: form.location,
+        species: form.species.trim(),
+        location: form.location.trim(),
         notes: emptyToUndefined(form.notes),
         notesConditions: emptyToUndefined(form.idealNotes),
-        tempMin: toNumberOrUndefined(form.idealTempMin),
-        tempMax: toNumberOrUndefined(form.idealTempMax),
-        umiMin: toNumberOrUndefined(form.idealHumidityMin),
-        umiMax: toNumberOrUndefined(form.idealHumidityMax),
-        lightMin: toNumberOrUndefined(form.idealLightMin),
-        lightMax: toNumberOrUndefined(form.idealLightMax),
-        phMin: toNumberOrUndefined(form.idealPhMin),
-        phMax: toNumberOrUndefined(form.idealPhMax),
+        idealRanges: buildIdealRanges(form.idealRanges),
       };
 
       if (mode === "edit") {
         if (!plantId) throw new Error("ID da planta não encontrado.");
         await updatePlant(plantId, payload);
+        updateLocalOptions(payload);
         onSubmitSuccess?.();
         return;
       }
 
       await createPlant(payload);
+      updateLocalOptions(payload);
       setForm(initial);
       setTouched({});
       onSubmitSuccess?.();
@@ -208,25 +266,27 @@ export default function NewPlantForm({
             error={touched.name ? errors.name : ""}
           />
 
-          <SelectField
+          <ComboField
             label="Espécie*"
-            placeholder="Selecione a espécie"
+            placeholder="Digite ou selecione a espécie"
             value={form.species}
             options={speciesOptions}
             onChange={(v) => update("species", v)}
             onBlur={() => markTouched("species")}
             error={touched.species ? errors.species : ""}
+            listId="species-list"
           />
 
-          <SelectField
+          <ComboField
             label="Localização*"
-            placeholder="Selecione a localização"
+            placeholder="Digite ou selecione a localização"
             value={form.location}
             options={locationOptions}
             onChange={(v) => update("location", v)}
             onBlur={() => markTouched("location")}
             error={touched.location ? errors.location : ""}
             className="md:col-span-2 md:max-w-[360px]"
+            listId="location-list"
           />
         </div>
 
@@ -244,38 +304,86 @@ export default function NewPlantForm({
         title="Condições Ideais"
         icon={<Sprout className="h-5 w-5 text-[var(--plant-primary)]" />}
       >
-        <div className="grid gap-4 md:grid-cols-2">
-          <RangeField
-            label="Temperatura (°C)"
-            minValue={form.idealTempMin}
-            maxValue={form.idealTempMax}
-            onChangeMin={(v) => update("idealTempMin", v)}
-            onChangeMax={(v) => update("idealTempMax", v)}
-          />
+        <div className="grid gap-4">
+          <div className="rounded-2xl border border-black/5 bg-white p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-[var(--plant-graphite)]">
+                Condição
+              </p>
+              <button
+                type="button"
+                onClick={addRange}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-black/10 text-[var(--plant-graphite)] hover:bg-black/5"
+                aria-label="Adicionar condição"
+                title="Adicionar condição"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
 
-          <RangeField
-            label="Umidade (%)"
-            minValue={form.idealHumidityMin}
-            maxValue={form.idealHumidityMax}
-            onChangeMin={(v) => update("idealHumidityMin", v)}
-            onChangeMax={(v) => update("idealHumidityMax", v)}
-          />
-
-          <RangeField
-            label="Luminosidade (%)"
-            minValue={form.idealLightMin}
-            maxValue={form.idealLightMax}
-            onChangeMin={(v) => update("idealLightMin", v)}
-            onChangeMax={(v) => update("idealLightMax", v)}
-          />
-
-          <RangeField
-            label="pH"
-            minValue={form.idealPhMin}
-            maxValue={form.idealPhMax}
-            onChangeMin={(v) => update("idealPhMin", v)}
-            onChangeMax={(v) => update("idealPhMax", v)}
-          />
+            <div className="mt-3 space-y-3">
+              {form.idealRanges.map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded-xl border border-black/5 bg-[var(--plant-ice)]/40 p-3"
+                >
+                  <div className="grid gap-3 md:grid-cols-[1fr,1fr,1fr,auto] items-end">
+                    <ComboField
+                      label="Título"
+                      placeholder="Digite ou selecione o título"
+                      value={row.type}
+                      options={typeOptions}
+                      onChange={(v) => updateRange(row.id, "type", v)}
+                      listId="type-list"
+                    />
+                    <ComboField
+                      label="Unidade"
+                      placeholder="Digite ou selecione a unidade"
+                      value={row.unit}
+                      options={unitOptions}
+                      onChange={(v) => updateRange(row.id, "unit", v)}
+                      listId="unit-list"
+                    />
+                    <div>
+                      <label className="block text-sm font-semibold text-[var(--plant-graphite)]">
+                        Intervalo
+                      </label>
+                      <div className="mt-2 flex items-center gap-3">
+                        <input
+                          value={row.min}
+                          onChange={(e) =>
+                            updateRange(row.id, "min", e.target.value)
+                          }
+                          placeholder="Mínimo"
+                          className="w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm outline-none
+                                     focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30"
+                        />
+                        <span className="text-sm text-black/35">a</span>
+                        <input
+                          value={row.max}
+                          onChange={(e) =>
+                            updateRange(row.id, "max", e.target.value)
+                          }
+                          placeholder="Máximo"
+                          className="w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm outline-none
+                                     focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeRange(row.id)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 text-black/50 hover:bg-black/5"
+                      aria-label="Remover condição"
+                      title="Remover condição"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="mt-4">
@@ -331,4 +439,81 @@ function toNumberOrUndefined(value: string) {
   if (!trimmed) return undefined;
   const n = Number(trimmed.replace(",", "."));
   return Number.isFinite(n) ? n : undefined;
+}
+
+type Option = { value: string; label: string };
+
+function toOptions(values: string[]) {
+  return values.map((v) => ({ value: v, label: v }));
+}
+
+function normalizeKey(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function hasValue(options: Option[], value: string) {
+  const key = normalizeKey(value);
+  return options.some((o) => normalizeKey(o.value) === key);
+}
+
+function createId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function emptyRangeRow(): RangeRow {
+  return { id: createId(), type: "", unit: "", min: "", max: "" };
+}
+
+function buildInitialForm(defaults?: Partial<FormState>): FormState {
+  const base: FormState = {
+    name: "",
+    species: "",
+    location: "",
+    notes: "",
+    idealNotes: "",
+    idealRanges: [emptyRangeRow()],
+  };
+
+  if (!defaults) return base;
+
+  return {
+    ...base,
+    ...defaults,
+    idealRanges: defaults.idealRanges ?? base.idealRanges,
+  };
+}
+
+type IdealRangePayload = NonNullable<CreatePlantPayload["idealRanges"]>[number];
+
+function buildIdealRanges(
+  ranges: RangeRow[]
+): CreatePlantPayload["idealRanges"] {
+  const list: IdealRangePayload[] = [];
+  const push = (r: RangeRow) => {
+    const type = r.type.trim();
+    const unit = r.unit.trim();
+    if (!type || !unit) return;
+    list.push({
+      type,
+      unit,
+      min: toNumberOrUndefined(r.min),
+      max: toNumberOrUndefined(r.max),
+    });
+  };
+
+  ranges.forEach((r) => push(r));
+
+  return list.length ? list : undefined;
+}
+
+function mergeUnitList(existing: string[], incoming: string[]) {
+  const next = [...existing];
+  incoming.forEach((v) => {
+    const val = v?.trim();
+    if (!val) return;
+    if (!next.some((x) => x.trim().toLowerCase() === val.toLowerCase())) {
+      next.unshift(val);
+    }
+  });
+  return next;
 }

@@ -98,6 +98,10 @@ export default function PlantDetailsPage() {
   const humidityValue = plant.umiCurrent ?? null;
   const lightValue = plant.lightCurrrent ?? null;
   const phValue = plant.phCurrent ?? null;
+  const tempUnit = plant.tempUnit ?? "°C";
+  const umiUnit = plant.umiUnit ?? "%";
+  const lightUnit = plant.lightUnit ?? "lux";
+  const phUnit = plant.phUnit ?? "pH";
 
   return (
     <div className="p-4 md:p-6">
@@ -126,28 +130,29 @@ export default function PlantDetailsPage() {
               icon={<ThermometerSun className="h-4 w-4 text-orange-600" />}
               label="Temperatura"
               value={valueOrDash(tempValue)}
-              suffix="°C"
-              ideal={formatRange(plant.tempMin, plant.tempMax, "°C")}
+              suffix={tempUnit}
+              ideal={formatRange(plant.tempMin, plant.tempMax, tempUnit)}
             />
             <MetricCard
               icon={<Droplets className="h-4 w-4 text-sky-600" />}
               label="Umidade"
               value={valueOrDash(humidityValue)}
-              suffix="%"
-              ideal={formatRange(plant.umiMin, plant.umiMax, "%")}
+              suffix={umiUnit}
+              ideal={formatRange(plant.umiMin, plant.umiMax, umiUnit)}
             />
             <MetricCard
               icon={<Sun className="h-4 w-4 text-amber-500" />}
               label="Luminosidade"
               value={valueOrDash(lightValue)}
-              suffix="%"
-              ideal={formatRange(plant.lightMin, plant.lightMax, "%")}
+              suffix={lightUnit}
+              ideal={formatRange(plant.lightMin, plant.lightMax, lightUnit)}
             />
             <MetricCard
               icon={<FlaskConical className="h-4 w-4 text-purple-600" />}
               label="pH"
               value={valueOrDash(phValue)}
-              ideal={formatRange(plant.phMin, plant.phMax, "")}
+              suffix={phUnit}
+              ideal={formatRange(plant.phMin, plant.phMax, phUnit)}
             />
           </div>
 
