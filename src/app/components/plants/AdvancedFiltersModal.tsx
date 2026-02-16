@@ -3,10 +3,10 @@
 import Modal from "@/app/components/ui/Modal";
 
 type AdvancedFilters = {
-  status: "" | "ONLINE" | "ATENCAO" | "OFFLINE";
+  status: "" | "ONLINE" | "EM ALERTA" | "OFFLINE";
   location: string;
   species: string;
-  minSensors: string; // string para input simples
+  minSensors: string;
   maxSensors: string;
 };
 
@@ -73,7 +73,7 @@ export default function AdvancedFiltersModal({
           >
             <option value="">Todos</option>
             <option value="ONLINE">Online</option>
-            <option value="ATENCAO">Atenção</option>
+            <option value="EM ALERTA">Em alerta</option>
             <option value="OFFLINE">Offline</option>
           </select>
         </div>

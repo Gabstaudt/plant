@@ -6,12 +6,12 @@ import AdvancedFiltersModal from "@/app/components/plants/AdvancedFiltersModal";
 
 export type PlantsQuickFilters = {
   query: string;
-  status: "" | "ONLINE" | "ATENCAO" | "OFFLINE";
+  status: "" | "ONLINE" | "EM ALERTA" | "OFFLINE";
   location: string;
 };
 
 export type AdvancedFilters = {
-  status: "" | "ONLINE" | "ATENCAO" | "OFFLINE";
+  status: "" | "ONLINE" | "EM ALERTA" | "OFFLINE";
   location: string;
   species: string;
   minSensors: string;
@@ -61,10 +61,8 @@ export default function PlantsToolbar({
 
   return (
     <>
-      {/* Container igual ao print */}
       <div className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
         <div className="grid gap-3 md:grid-cols-[1fr_180px_220px_auto] md:items-center">
-          {/* Buscar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/35" />
             <input
@@ -76,7 +74,6 @@ export default function PlantsToolbar({
             />
           </div>
 
-          {/* Status */}
           <select
             value={quick.status}
             onChange={(e) =>
@@ -87,11 +84,10 @@ export default function PlantsToolbar({
           >
             <option value="">Todos os status</option>
             <option value="ONLINE">Online</option>
-            <option value="ATENCAO">Atenção</option>
+            <option value="EM ALERTA">Em alerta</option>
             <option value="OFFLINE">Offline</option>
           </select>
 
-          {/* Localização */}
           <select
             value={quick.location}
             onChange={(e) => setQuick("location", e.target.value)}
@@ -105,7 +101,6 @@ export default function PlantsToolbar({
             ))}
           </select>
 
-          {/* Botão Filtros Avançados */}
           <button
             type="button"
             onClick={() => setOpenAdvanced(true)}
@@ -120,7 +115,6 @@ export default function PlantsToolbar({
         </div>
       </div>
 
-      {/* Modal */}
       <AdvancedFiltersModal
         open={openAdvanced}
         value={advanced}

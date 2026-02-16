@@ -1,4 +1,4 @@
-import type { PlantStatus } from "@/app/components/mocks/plants/plants.mocks";
+import type { PlantStatus } from "@/app/lib/plants.api";
 
 export default function PlantStatusBadge({ status }: { status: PlantStatus }) {
   if (status === "ONLINE") {
@@ -9,10 +9,10 @@ export default function PlantStatusBadge({ status }: { status: PlantStatus }) {
     );
   }
 
-  if (status === "ATTENTION") {
+  if (status === "EM ALERTA") {
     return (
       <span className="badge bg-amber-50 text-amber-700 border border-amber-100">
-        Atenção
+        Em alerta
       </span>
     );
   }
