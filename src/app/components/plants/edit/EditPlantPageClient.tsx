@@ -38,20 +38,14 @@ export default function EditPlantPageClient() {
 
   const defaults = useMemo(() => {
     if (!plant) return undefined;
+    const ranges = buildRangesFromPlant(plant);
     return {
       name: plant.plantName,
       species: plant.species,
       location: plant.location,
       notes: plant.notes ?? "",
-      idealTempMin: plant.tempMin != null ? String(plant.tempMin) : "",
-      idealTempMax: plant.tempMax != null ? String(plant.tempMax) : "",
-      idealHumidityMin: plant.umiMin != null ? String(plant.umiMin) : "",
-      idealHumidityMax: plant.umiMax != null ? String(plant.umiMax) : "",
-      idealLightMin: plant.lightMin != null ? String(plant.lightMin) : "",
-      idealLightMax: plant.lightMax != null ? String(plant.lightMax) : "",
-      idealPhMin: plant.phMin != null ? String(plant.phMin) : "",
-      idealPhMax: plant.phMax != null ? String(plant.phMax) : "",
       idealNotes: plant.notesConditions ?? "",
+      idealRanges: ranges,
     };
   }, [plant]);
 
@@ -85,4 +79,27 @@ export default function EditPlantPageClient() {
       />
     </div>
   );
+}
+
+function buildRangesFromPlant(plant: PlantStatusResponse) {
+  const rows =
+    plant.idealRanges?.map((r) => ({
+      id: `${r.type}-${r.unit}-${Math.random().toString(36).slice(2, 8)}`,
+      type: r.type,
+      unit: r.unit,
+      min: r.min != null ? String(r.min) : "",
+      max: r.max != null ? String(r.max) : "",
+    })) ?? [];
+
+  return rows.length ? rows : [emptyRow()];
+}
+
+function emptyRow() {
+  return {
+    id: `new-${Math.random().toString(36).slice(2, 8)}`,
+    type: "",
+    unit: "",
+    min: "",
+    max: "",
+  };
 }

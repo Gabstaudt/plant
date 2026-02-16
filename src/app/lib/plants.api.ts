@@ -8,12 +8,16 @@ export type PlantStatusResponse = {
   species: string;
   location: string;
   notes?: string;
+  tempUnit?: string;
   tempMax?: number;
   tempMin?: number;
+  umiUnit?: string;
   umiMax?: number;
   umiMin?: number;
+  lightUnit?: string;
   lightMax?: number;
   lightMin?: number;
+  phUnit?: string;
   phMax?: number;
   phMin?: number;
   notesConditions?: string;
@@ -24,6 +28,12 @@ export type PlantStatusResponse = {
   phCurrent?: number;
   tempCurrent?: number;
   lightCurrrent?: number;
+  idealRanges?: Array<{
+    type: string;
+    unit: string;
+    min?: number;
+    max?: number;
+  }>;
 };
 
 export type PlantsListResponse = {
@@ -41,14 +51,24 @@ export type CreatePlantPayload = {
   location: string;
   notes?: string;
   notesConditions?: string;
+  tempUnit?: string;
   tempMax?: number;
   tempMin?: number;
+  umiUnit?: string;
   umiMax?: number;
   umiMin?: number;
+  lightUnit?: string;
   lightMax?: number;
   lightMin?: number;
+  phUnit?: string;
   phMax?: number;
   phMin?: number;
+  idealRanges?: Array<{
+    type: string;
+    unit: string;
+    min?: number;
+    max?: number;
+  }>;
 };
 
 export type UpdatePlantPayload = Partial<CreatePlantPayload>;
@@ -66,6 +86,13 @@ export type PlantCardView = {
     light: number | null;
   };
   lastReading?: string;
+};
+
+export type PlantOptionsResponse = {
+  species: string[];
+  locations: string[];
+  types: string[];
+  units: string[];
 };
 
 const SPECIES_LABELS: Record<string, string> = {
@@ -123,6 +150,10 @@ export async function listPlants(limit = 500) {
   return api<PlantsListResponse>(
     `/plants?limit=${limit}&page=1&orderBy=asc`
   );
+}
+
+export async function listPlantOptions() {
+  return api<PlantOptionsResponse>("/plants/options");
 }
 
 export async function getPlant(id: string | number) {
