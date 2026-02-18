@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -13,6 +14,7 @@ import {
   MessageSquare,
   User,
 } from "lucide-react";
+import { getAlert, resolveAlert, type AlertResponse } from "@/app/lib/alerts.api";
 
 type ReadingRow = {
   at: string;
@@ -82,19 +84,44 @@ function severityPill(sev: "CRITICO" | "MEDIO" | "BAIXO") {
 }
 
 export default function AlertDetailsPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
   const [comment, setComment] = useState("");
+  const [alert, setAlert] = useState(alertMock);
+  const [readings, setReadings] = useState<ReadingRow[]>(readingsMock);
+  const [events, setEvents] = useState<EventRow[]>(eventsMock);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        if (!id) return;
+        const data = await getAlert(id);
+        if (!active) return;
+        const mapped = mapAlertToDetails(data);
+        setAlert(mapped.alert);
+        setReadings(mapped.readings);
+        setEvents(mapped.events);
+      } catch {
+        // mantém mock
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
   const stats = useMemo(
     () => ({
-      statusLabel: alertMock.status === "ATIVO" ? "Ativo" : "Resolvido",
+      statusLabel: alert.status === "ATIVO" ? "Ativo" : "Resolvido",
       severityLabel:
-        alertMock.severity === "CRITICO"
+        alert.severity === "CRITICO"
           ? "Crítico"
-          : alertMock.severity === "MEDIO"
+          : alert.severity === "MEDIO"
           ? "Médio"
           : "Baixo",
     }),
-    []
+    [alert]
   );
 
   return (
@@ -116,24 +143,24 @@ export default function AlertDetailsPage() {
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-2xl md:text-3xl font-extrabold text-[var(--plant-graphite)] leading-tight">
-                {alertMock.title}
+                {alert.title}
               </h1>
               <span
                 className={`px-3 py-1 rounded-full text-xs font-bold border ${severityPill(
-                  alertMock.severity
+                  alert.severity
                 )}`}
               >
                 {stats.severityLabel}
               </span>
               <span
                 className={`px-3 py-1 rounded-full text-xs font-bold border ${statusPill(
-                  alertMock.status
+                  alert.status
                 )}`}
               >
                 {stats.statusLabel}
               </span>
             </div>
-            <div className="mt-1 text-sm text-black/45">{alertMock.id}</div>
+            <div className="mt-1 text-sm text-black/45">{alert.id}</div>
           </div>
         </div>
       </div>
@@ -144,7 +171,7 @@ export default function AlertDetailsPage() {
             <h3 className="text-lg font-extrabold text-[var(--plant-graphite)]">
               Descrição
             </h3>
-            <p className="mt-3 text-sm text-black/55">{alertMock.description}</p>
+            <p className="mt-3 text-sm text-black/55">{alert.description}</p>
           </div>
 
           <div className="rounded-2xl border border-black/10 bg-white p-6">
@@ -157,10 +184,10 @@ export default function AlertDetailsPage() {
               </div>
               <div>
                 <div className="text-4xl font-extrabold text-red-500">
-                  {alertMock.currentValue}
+                {alert.currentValue}
                 </div>
                 <div className="mt-2 text-sm text-black/55">
-                  {alertMock.limitLabel}
+                  {alert.limitLabel}
                 </div>
               </div>
             </div>
@@ -177,7 +204,7 @@ export default function AlertDetailsPage() {
                 <span className="text-right">Status</span>
               </div>
               <div className="mt-2 divide-y divide-black/5">
-                {readingsMock.map((r) => (
+                {readings.map((r) => (
                   <div
                     key={`${r.at}-${r.value}`}
                     className="grid grid-cols-[1.2fr_0.8fr_0.6fr] items-center px-2 py-3 text-sm"
@@ -202,7 +229,7 @@ export default function AlertDetailsPage() {
               Histórico de Eventos
             </h3>
             <div className="mt-4 space-y-4">
-              {eventsMock.map((e) => (
+              {events.map((e) => (
                 <div key={e.id} className="flex items-start gap-3">
                   <div className="h-10 w-10 rounded-full bg-black/5 grid place-items-center">
                     <User className="h-5 w-5 text-black/45" />
@@ -227,37 +254,37 @@ export default function AlertDetailsPage() {
             <div className="mt-4 space-y-4 text-sm">
               <div>
                 <div className="text-black/45">Planta</div>
-                <div className="font-semibold text-[var(--plant-primary)]">
-                  {alertMock.plantName}
+                  <div className="font-semibold text-[var(--plant-primary)]">
+                    {alert.plantName}
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 text-black/60">
+                    <MapPin className="h-4 w-4 text-black/35" />
+                    <span>{alert.plantLocation}</span>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-black/60">
-                  <MapPin className="h-4 w-4 text-black/35" />
-                  <span>{alertMock.plantLocation}</span>
-                </div>
-              </div>
 
               <div className="border-t border-black/5 pt-4">
                 <div className="text-black/45">Sensor</div>
                 <div className="mt-1 flex items-center gap-2 text-[var(--plant-graphite)]">
                   <Cpu className="h-4 w-4 text-[var(--plant-primary)]" />
-                  <span className="font-semibold">{alertMock.sensorName}</span>
+                  <span className="font-semibold">{alert.sensorName}</span>
                 </div>
-                <div className="text-xs text-black/45">{alertMock.sensorCode}</div>
+                <div className="text-xs text-black/45">{alert.sensorCode}</div>
               </div>
 
               <div className="border-t border-black/5 pt-4">
                 <div className="text-black/45">Regra de Alerta</div>
                 <div className="font-semibold text-[var(--plant-graphite)]">
-                  {alertMock.ruleName}
+                  {alert.ruleName}
                 </div>
-                <div className="text-xs text-black/45">{alertMock.ruleDetail}</div>
+                <div className="text-xs text-black/45">{alert.ruleDetail}</div>
               </div>
 
               <div className="border-t border-black/5 pt-4">
                 <div className="text-black/45">Disparado em</div>
                 <div className="mt-2 flex items-center gap-2 text-[var(--plant-graphite)]">
                   <Calendar className="h-4 w-4 text-black/35" />
-                  <span className="font-semibold">{alertMock.firedAt}</span>
+                  <span className="font-semibold">{alert.firedAt}</span>
                 </div>
               </div>
             </div>
@@ -285,7 +312,29 @@ export default function AlertDetailsPage() {
             </div>
 
             <div className="mt-5 flex flex-col gap-3">
-              <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--plant-primary)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-95">
+              <button
+                className={[
+                  "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white",
+                  "bg-[var(--plant-primary)]",
+                  !comment.trim()
+                    ? "opacity-60 cursor-not-allowed"
+                    : "hover:opacity-95",
+                ].join(" ")}
+                disabled={!comment.trim()}
+                onClick={async () => {
+                  if (!comment.trim() || !id) return;
+                  try {
+                    const res = await resolveAlert(id, comment.trim());
+                    const mapped = mapAlertToDetails(res);
+                    setAlert(mapped.alert);
+                    setReadings(mapped.readings);
+                    setEvents(mapped.events);
+                    setComment("");
+                  } catch {
+                    // noop
+                  }
+                }}
+              >
                 <CheckCircle2 className="h-4 w-4" />
                 Marcar como Resolvido
               </button>
@@ -299,4 +348,46 @@ export default function AlertDetailsPage() {
       </div>
     </div>
   );
+}
+
+function mapAlertToDetails(data: AlertResponse) {
+  const alert = {
+    id: `ALT-${String(data.id).padStart(3, "0")}`,
+    title: data.title,
+    status: data.status,
+    severity: data.severity,
+    description: data.description,
+    plantName: data.plant?.name ?? "—",
+    plantLocation: data.plant?.location ?? "—",
+    sensorName: data.sensor?.name ?? "—",
+    sensorCode: data.sensor?.code ?? "—",
+    ruleName: data.rule?.name ?? "Regra",
+    ruleDetail: data.rule?.detail ?? "",
+    firedAt: new Date(data.firedAt).toLocaleString("pt-BR"),
+    currentValue:
+      data.value != null
+        ? `${data.value}${data.unit ?? ""}`
+        : data.unit ?? "—",
+    limitLabel: data.rule?.detail ? `Limite: ${data.rule.detail}` : "Limite: —",
+  };
+
+  const readings: ReadingRow[] = data.value
+    ? [
+        {
+          at: new Date(data.firedAt).toLocaleString("pt-BR"),
+          value: `${data.value}${data.unit ?? ""}`,
+          status: "ACIMA",
+        },
+      ]
+    : readingsMock;
+
+  const events: EventRow[] =
+    data.events?.map((e) => ({
+      id: String(e.id),
+      by: e.by ?? "Sistema",
+      at: new Date(e.at).toLocaleString("pt-BR"),
+      text: e.message ?? e.title,
+    })) ?? eventsMock;
+
+  return { alert, readings, events };
 }
