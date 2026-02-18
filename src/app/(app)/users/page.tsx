@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -14,12 +14,20 @@ import {
 } from "lucide-react";
 
 import PageHeader from "@/app/components/layout/PageHeader";
-
-type Role = "ADMIN_MASTER" | "ADMIN" | "USUARIO";
-type Status = "ATIVO" | "PENDENTE" | "BLOQUEADO";
+import {
+  approveEcosystemRequest,
+  getEcosystem,
+  listEcosystemRequests,
+  listEcosystemUsers,
+  rejectEcosystemRequest,
+  type EcosystemRequest,
+  type EcosystemUser,
+  type Role,
+  type Status,
+} from "@/app/lib/users.api";
 
 type UserRow = {
-  id: string;
+  id: number;
   name: string;
   email: string;
   role: Role;
@@ -28,58 +36,15 @@ type UserRow = {
 };
 
 type RequestRow = {
-  id: string;
+  id: number;
   name: string;
   email: string;
   requestedRole: Role;
   requestedAt: string;
 };
 
-const ecosystemCode = "ECO-8F2C9A";
-
-const usersMock: UserRow[] = [
-  {
-    id: "u-1",
-    name: "João Silva",
-    email: "joao@plantmonitor.com",
-    role: "ADMIN_MASTER",
-    status: "ATIVO",
-    lastLogin: "15/01/2025 07:20",
-  },
-  {
-    id: "u-2",
-    name: "João Silva",
-    email: "joao@plantmonitor.com",
-    role: "USUARIO",
-    status: "ATIVO",
-    lastLogin: "15/01/2025 07:20",
-  },
-  {
-    id: "u-3",
-    name: "João Silva",
-    email: "joao@plantmonitor.com",
-    role: "USUARIO",
-    status: "ATIVO",
-    lastLogin: "15/01/2025 07:20",
-  },
-];
-
-const requestsMock: RequestRow[] = [
-  {
-    id: "r-1",
-    name: "Maria Costa",
-    email: "maria@plantmonitor.com",
-    requestedRole: "USUARIO",
-    requestedAt: "18/02/2026 10:12",
-  },
-  {
-    id: "r-2",
-    name: "Pedro Souza",
-    email: "pedro@plantmonitor.com",
-    requestedRole: "ADMIN",
-    requestedAt: "18/02/2026 09:05",
-  },
-];
+const usersFallback: UserRow[] = [];
+const requestsFallback: RequestRow[] = [];
 
 function roleLabel(role: Role) {
   if (role === "ADMIN_MASTER") return "Administrador";
@@ -97,23 +62,110 @@ function statusBadge(status: Status) {
   return "bg-red-50 text-red-600 border-red-200";
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  try {
+    const d = new Date(value);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
+    return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+  } catch {
+    return "—";
+  }
+}
+
 export default function UsersPage() {
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"" | Role>("");
+  const [ecosystemCode, setEcosystemCode] = useState<string>("—");
+  const [users, setUsers] = useState<UserRow[]>(usersFallback);
+  const [requests, setRequests] = useState<RequestRow[]>(requestsFallback);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const [eco, usersRes, requestsRes] = await Promise.all([
+          getEcosystem(),
+          listEcosystemUsers(),
+          listEcosystemRequests(),
+        ]);
+        if (!mounted) return;
+        setEcosystemCode(eco.code);
+        setUsers(
+          usersRes.map((u: EcosystemUser) => ({
+            id: u.id,
+            name: u.fullName,
+            email: u.email,
+            role: u.role,
+            status: u.status,
+            lastLogin: formatDateTime(u.lastLoginAt),
+          })),
+        );
+        setRequests(
+          requestsRes.map((r: EcosystemRequest) => ({
+            id: r.id,
+            name: r.fullName,
+            email: r.email,
+            requestedRole: (r.requestedRole ?? r.role) as Role,
+            requestedAt: formatDateTime(r.createdAt),
+          })),
+        );
+      } catch {
+        if (!mounted) return;
+        setUsers(usersFallback);
+        setRequests(requestsFallback);
+      }
+    }
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return usersMock.filter((u) => {
+    return users.filter((u) => {
       if (q) {
-        const match =
-          u.name.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q);
+        const match = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
         if (!match) return false;
       }
       if (roleFilter && u.role !== roleFilter) return false;
       return true;
     });
-  }, [query, roleFilter]);
+  }, [query, roleFilter, users]);
+
+  async function handleApprove(id: number) {
+    try {
+      await approveEcosystemRequest(id);
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+      const usersRes = await listEcosystemUsers();
+      setUsers(
+        usersRes.map((u) => ({
+          id: u.id,
+          name: u.fullName,
+          email: u.email,
+          role: u.role,
+          status: u.status,
+          lastLogin: formatDateTime(u.lastLoginAt),
+        })),
+      );
+    } catch {
+      // no-op
+    }
+  }
+
+  async function handleReject(id: number) {
+    try {
+      await rejectEcosystemRequest(id);
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+    } catch {
+      // no-op
+    }
+  }
 
   return (
     <div className="p-4 md:p-6">
@@ -167,12 +219,12 @@ export default function UsersPage() {
               </div>
             </div>
             <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-              {requestsMock.length}
+              {requests.length}
             </div>
           </div>
 
           <div className="mt-4 space-y-3">
-            {requestsMock.map((r) => (
+            {requests.map((r) => (
               <div
                 key={r.id}
                 className="rounded-xl border border-black/10 bg-white px-4 py-3"
@@ -192,10 +244,16 @@ export default function UsersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+                    <button
+                      onClick={() => handleApprove(r.id)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    >
                       <CheckCircle2 className="h-4 w-4" />
                     </button>
-                    <button className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100">
+                    <button
+                      onClick={() => handleReject(r.id)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                    >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
@@ -203,10 +261,8 @@ export default function UsersPage() {
               </div>
             ))}
 
-            {!requestsMock.length ? (
-              <div className="text-sm text-black/45">
-                Nenhuma solicitação pendente.
-              </div>
+            {!requests.length ? (
+              <div className="text-sm text-black/45">Nenhuma solicitação pendente.</div>
             ) : null}
           </div>
         </div>
@@ -234,7 +290,7 @@ export default function UsersPage() {
             <option value="">Todos os tipos</option>
             <option value="ADMIN_MASTER">Administrador</option>
             <option value="ADMIN">Administrador</option>
-            <option value="USUARIO">Usuário</option>
+            <option value="VIEWER">Usuário</option>
           </select>
         </div>
       </div>
@@ -256,8 +312,16 @@ export default function UsersPage() {
                     <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                       {roleLabel(u.role)}
                     </span>
-                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusBadge(u.status)}`}>
-                      {u.status === "ATIVO" ? "Ativo" : u.status === "PENDENTE" ? "Pendente" : "Bloqueado"}
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusBadge(
+                        u.status,
+                      )}`}
+                    >
+                      {u.status === "ATIVO"
+                        ? "Ativo"
+                        : u.status === "PENDENTE"
+                          ? "Pendente"
+                          : "Bloqueado"}
                     </span>
                   </div>
                 </div>
