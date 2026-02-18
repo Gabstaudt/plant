@@ -74,6 +74,20 @@ export async function listAlertRules() {
   return api<{ data: AlertRuleResponse[] }>("/alerts/rules");
 }
 
+export async function getAlertRule(id: string | number) {
+  return api<AlertRuleResponse>(`/alerts/rules/${id}`);
+}
+
+export async function updateAlertRule(
+  id: string | number,
+  payload: Partial<CreateAlertRulePayload>
+) {
+  return api<AlertRuleResponse>(`/alerts/rules/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getAlert(id: string | number) {
   return api<AlertResponse>(`/alerts/${id}`);
 }

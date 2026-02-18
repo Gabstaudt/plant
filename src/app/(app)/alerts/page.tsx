@@ -515,7 +515,7 @@ export default function AlertsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 grid gap-3 rounded-xl border border-black/5 bg-[var(--plant-ice)]/40 px-4 py-3 text-sm md:grid-cols-3">
+                <div className="mt-4 grid gap-3 rounded-xl border border-black/5 bg-[var(--plant-ice)]/40 px-4 py-3 text-sm md:grid-cols-3">
                     <div>
                       <div className="text-black/45">Condição:</div>
                       <div className="font-semibold text-[var(--plant-graphite)]">{r.condition}</div>
@@ -529,11 +529,20 @@ export default function AlertsPage() {
                     <div>
                       <div className="text-black/45">Criado em:</div>
                       <div className="font-semibold text-[var(--plant-graphite)]">{r.createdAt}</div>
-                    </div>
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="mt-4 flex items-center justify-end">
+                  <Link
+                    href={`/alerts/rules/${r.id}/edit`}
+                    className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5"
+                  >
+                    Editar
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
           </div>
         )}
       </div>
