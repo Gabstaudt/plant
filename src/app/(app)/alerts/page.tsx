@@ -142,7 +142,7 @@ export default function AlertsPage() {
     <div className="p-4 md:p-6">
       <PageHeader
         title="Alertas"
-        subtitle="Monitore e gerencie alertas de sensores"
+        subtitle="Monitore e gerencie alertas de Sensores."
         right={
           <Link href="/alerts/new" className="btn btn-primary rounded-full px-5 py-2">
             <span className="inline-flex -ml-1 mr-2 h-5 w-5 items-center justify-center">
@@ -157,7 +157,7 @@ export default function AlertsPage() {
         <div className="rounded-2xl border border-red-200/70 bg-red-50/60 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-red-600">Críticos</div>
+              <div className="text-xs font-semibold text-red-600">CRÍTICOS</div>
               <div className="mt-1 text-2xl font-extrabold text-red-600">
                 {stats.critical}
               </div>
@@ -168,24 +168,10 @@ export default function AlertsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-amber-200/70 bg-amber-50/60 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold text-amber-700">Ativos</div>
-              <div className="mt-1 text-2xl font-extrabold text-amber-700">
-                {stats.active}
-              </div>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-white/70 grid place-items-center">
-              <Clock className="h-5 w-5 text-amber-600" />
-            </div>
-          </div>
-        </div>
-
         <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/60 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-emerald-700">Resolvidos</div>
+              <div className="text-xs font-semibold text-emerald-700">RESOLVIDOS</div>
               <div className="mt-1 text-2xl font-extrabold text-emerald-700">
                 {stats.resolved}
               </div>
@@ -196,16 +182,30 @@ export default function AlertsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-black/10 bg-white p-4">
+        <div className="rounded-2xl border border-amber-200/70 bg-amber-50/60 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-black/60">Total</div>
-              <div className="mt-1 text-2xl font-extrabold text-[var(--plant-graphite)]">
-                {stats.total}
+              <div className="text-xs font-semibold text-amber-700">ATIVOS</div>
+              <div className="mt-1 text-2xl font-extrabold text-amber-700">
+                {stats.active}
               </div>
             </div>
-            <div className="h-10 w-10 rounded-xl bg-[var(--plant-ice)]/40 grid place-items-center">
-              <Filter className="h-5 w-5 text-black/50" />
+            <div className="h-10 w-10 rounded-xl bg-white/70 grid place-items-center">
+              <Clock className="h-5 w-5 text-amber-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-black/15 bg-black/[0.02] p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs font-semibold text-black/50">CRÍTICOS</div>
+              <div className="mt-1 text-2xl font-extrabold text-black/60">
+                {stats.critical}
+              </div>
+            </div>
+            <div className="h-10 w-10 rounded-xl bg-white/70 grid place-items-center">
+              <Filter className="h-5 w-5 text-black/40" />
             </div>
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function AlertsPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar alertas..."
+              placeholder="Buscar alertas"
               className="w-full rounded-xl border border-black/10 bg-white pl-9 pr-4 py-2.5 text-sm outline-none
                          focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30"
             />
@@ -241,7 +241,7 @@ export default function AlertsPage() {
             className="w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm outline-none
                        focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30"
           >
-            <option value="">Todas as severidades</option>
+            <option value="">Todos os tipos</option>
             <option value="CRITICO">Crítico</option>
             <option value="MEDIO">Médio</option>
             <option value="BAIXO">Baixo</option>
@@ -254,40 +254,29 @@ export default function AlertsPage() {
         </div>
       </div>
 
-      <div className="mt-6 space-y-4">
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
         {filtered.map((a) => {
           const sev = severityPill(a.severity);
           const stat = statusPill(a.status);
           return (
             <div key={a.id} className="rounded-2xl border border-black/10 bg-white p-5">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="mt-1 grid h-12 w-12 place-items-center rounded-2xl bg-red-50">
-                    <AlertTriangle className="h-6 w-6 text-red-500" />
-                  </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h3 className="text-lg font-extrabold text-[var(--plant-graphite)]">
-                        {a.title}
-                      </h3>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${sev.cls}`}>
-                        {sev.label}
-                      </span>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${stat.cls}`}>
-                        {stat.label}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm text-black/55">{a.description}</p>
-                  </div>
+              <div className="flex items-start gap-4">
+                <div className="mt-1 grid h-12 w-12 place-items-center rounded-2xl bg-red-50">
+                  <AlertTriangle className="h-6 w-6 text-red-500" />
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <button className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5">
-                    Resolver
-                  </button>
-                  <button className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5">
-                    Ver Detalhes
-                  </button>
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-lg font-extrabold text-[var(--plant-graphite)]">
+                      {a.title}
+                    </h3>
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${sev.cls}`}>
+                      {sev.label}
+                    </span>
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${stat.cls}`}>
+                      {stat.label}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-black/55">{a.description}</p>
                 </div>
               </div>
 
