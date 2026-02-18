@@ -112,6 +112,8 @@ export default function AlertsPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"" | AlertStatus>("");
   const [severity, setSeverity] = useState<"" | AlertSeverity>("");
+  const [openResolveId, setOpenResolveId] = useState<string | null>(null);
+  const [resolveComment, setResolveComment] = useState("");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -282,7 +284,14 @@ export default function AlertsPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <button className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenResolveId(a.id);
+                      setResolveComment("");
+                    }}
+                    className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5"
+                  >
                     Resolver
                   </button>
                   <Link
@@ -316,6 +325,58 @@ export default function AlertsPage() {
           );
         })}
       </div>
+
+      {openResolveId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-extrabold text-[var(--plant-graphite)]">
+                  Resolver Alerta
+                </h3>
+                <p className="mt-1 text-sm text-black/55">
+                  Adicione um comentário sobre a resolução do alerta.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenResolveId(null)}
+                className="rounded-lg px-2 py-1 text-black/50 hover:bg-black/5"
+                aria-label="Fechar"
+                title="Fechar"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-5">
+              <textarea
+                value={resolveComment}
+                onChange={(e) => setResolveComment(e.target.value)}
+                placeholder="Descreva como o problema foi resolvido..."
+                className="w-full rounded-xl border border-[var(--plant-primary)]/60 bg-white px-4 py-3 text-sm outline-none min-h-[140px]
+                           focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]"
+              />
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setOpenResolveId(null)}
+                className="rounded-xl border border-black/10 px-6 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="rounded-xl bg-[var(--plant-primary)] px-6 py-2 text-sm font-semibold text-white hover:opacity-95"
+              >
+                Marcar como Resolvido
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
