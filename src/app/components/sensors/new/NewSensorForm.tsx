@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Cpu } from "lucide-react";
 
 import FormSection from "@/app/components/plants/new/FormSection";
@@ -9,12 +9,19 @@ import TextField from "@/app/components/plants/new/fields/TextField";
 import SelectField from "@/app/components/plants/new/fields/SelectField";
 import TextAreaField from "@/app/components/plants/new/fields/TextAreaField";
 import RangeField from "@/app/components/plants/new/fields/RangeField";
+import { getPlant, listPlants, type PlantStatusResponse } from "@/app/lib/plants.api";
+import {
+  createSensor,
+  defaultUnitForType,
+  mapUiTypeToApi,
+} from "@/app/lib/sensors.api";
 
 type FormState = {
   name: string;
   code: string;
-  type: "" | "TEMPERATURA" | "UMIDADE" | "LUMINOSIDADE" | "PH";
+  type: string;
   location: string;
+  unit: string;
   readIntervalSeconds: string;
   notes: string;
 
@@ -36,6 +43,7 @@ const initial: FormState = {
   code: "",
   type: "",
   location: "",
+  unit: "",
   readIntervalSeconds: "",
   notes: "",
 
@@ -82,24 +90,64 @@ export default function NewSensorForm({
   const [form, setForm] = useState<FormState>({ ...initial, ...defaultValues });
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [plants, setPlants] = useState<PlantStatusResponse[]>([]);
+  const [plantDetails, setPlantDetails] = useState<PlantStatusResponse | null>(null);
 
-  const typeOptions = useMemo(
-    () => [
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await listPlants();
+        if (!active) return;
+        setPlants(res?.data ?? []);
+      } catch {
+        if (active) setPlants([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const typeOptions = useMemo(() => {
+    const defaults = [
       { value: "TEMPERATURA", label: "Temperatura" },
       { value: "UMIDADE", label: "Umidade" },
       { value: "LUMINOSIDADE", label: "Luminosidade" },
       { value: "PH", label: "pH" },
-    ],
-    []
-  );
+    ];
+    const plantTypes =
+      plantDetails?.idealRanges?.map((r) => ({
+        value: r.type,
+        label: r.type,
+      })) ?? [];
+    const map = new Map<string, { value: string; label: string }>();
+    [...plantTypes, ...defaults].forEach((o) => {
+      if (!map.has(o.value)) map.set(o.value, o);
+    });
+    return Array.from(map.values());
+  }, [plantDetails]);
 
   const locationOptions = useMemo(
-    () => [
-      { value: "estufa-a-setor-1", label: "Estufa A - Setor 1" },
-      { value: "estufa-a-setor-2", label: "Estufa A - Setor 2" },
-      { value: "estufa-b-setor-3", label: "Estufa B - Setor 3" },
-    ],
-    []
+    () => {
+      const fromPlants = plants
+        .map((p) => p.location)
+        .filter(Boolean)
+        .map((loc) => ({ value: loc, label: loc }));
+
+      const defaults = [
+        { value: "estufa-a-setor-1", label: "Estufa A - Setor 1" },
+        { value: "estufa-a-setor-2", label: "Estufa A - Setor 2" },
+        { value: "estufa-b-setor-3", label: "Estufa B - Setor 3" },
+      ];
+
+      const map = new Map<string, { value: string; label: string }>();
+      [...fromPlants, ...defaults].forEach((o) => {
+        if (!map.has(o.value)) map.set(o.value, o);
+      });
+      return Array.from(map.values());
+    },
+    [plants]
   );
 
   const intervalOptions = useMemo(
@@ -112,13 +160,36 @@ export default function NewSensorForm({
     []
   );
 
-  const plantOptions = useMemo(
-    () => [
-      { value: "tomates-a1", label: "Tomates A1" },
-      { value: "lettuce-b2", label: "Lettuce B2" },
-    ],
-    []
-  );
+  const plantOptions = useMemo(() => {
+    const list = plants.map((p) => ({
+      value: String(p.id),
+      label: p.plantName,
+    }));
+    return list;
+  }, [plants]);
+
+  const unitOptions = useMemo(() => {
+    const fromPlants = plants
+      .map((p) => [p.tempUnit, p.umiUnit, p.lightUnit, p.phUnit])
+      .flat()
+      .filter(Boolean)
+      .map((u) => ({ value: String(u), label: String(u) }));
+    const fromPlantDetails =
+      plantDetails?.idealRanges
+        ?.map((r) => r.unit)
+        .filter(Boolean)
+        .map((u) => ({ value: String(u), label: String(u) })) ?? [];
+    const defaults = [
+      { value: "°C", label: "°C" },
+      { value: "%", label: "%" },
+      { value: "pH", label: "pH" },
+    ];
+    const map = new Map<string, { value: string; label: string }>();
+    [...fromPlantDetails, ...fromPlants, ...defaults].forEach((o) => {
+      if (!map.has(o.value)) map.set(o.value, o);
+    });
+    return Array.from(map.values());
+  }, [plants, plantDetails]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -133,10 +204,80 @@ export default function NewSensorForm({
     code: !form.code.trim() ? "Informe o ID do sensor." : "",
     type: !form.type ? "Selecione o tipo do sensor." : "",
     location: !form.location ? "Selecione a localização." : "",
+    unit: !form.unit ? "Selecione a unidade." : "",
   };
 
   const canSubmit =
-    !errors.name && !errors.code && !errors.type && !errors.location && !submitting;
+    !errors.name &&
+    !errors.code &&
+    !errors.type &&
+    !errors.location &&
+    !errors.unit &&
+    !submitting;
+
+  function resolveUnit(type: string, plant?: PlantStatusResponse | null) {
+    if (!type || !plant) return "";
+    const ideal = plant.idealRanges?.find((r) => r.type === type);
+    if (ideal?.unit) return ideal.unit;
+    if (type === "TEMPERATURA") return plant.tempUnit ?? "";
+    if (type === "UMIDADE") return plant.umiUnit ?? "";
+    if (type === "LUMINOSIDADE") return plant.lightUnit ?? "";
+    if (type === "PH") return plant.phUnit ?? "";
+    return "";
+  }
+
+  function pickPlantUnit(plant?: PlantStatusResponse | null) {
+    if (!plant) return "";
+    return (
+      plant.tempUnit ||
+      plant.umiUnit ||
+      plant.lightUnit ||
+      plant.phUnit ||
+      ""
+    );
+  }
+
+  useEffect(() => {
+    let active = true;
+    if (!form.plantId) {
+      setPlantDetails(null);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await getPlant(form.plantId);
+        if (!active) return;
+        setPlantDetails(res ?? null);
+      } catch {
+        if (active) setPlantDetails(null);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [form.plantId]);
+
+  useEffect(() => {
+    if (!plantDetails) return;
+    if (plantDetails.location && plantDetails.location !== form.location) {
+      update("location", plantDetails.location);
+    }
+    const plantType = plantDetails.idealRanges?.[0]?.type ?? "";
+    if (plantType && plantType !== form.type) {
+      update("type", plantType);
+    }
+    const unitFromPlant = resolveUnit(plantType || form.type, plantDetails);
+    const fallbackUnit = pickPlantUnit(plantDetails);
+    const nextUnit = unitFromPlant || fallbackUnit;
+    if (nextUnit && nextUnit !== form.unit) update("unit", nextUnit);
+  }, [plantDetails, form.type, form.location]);
+
+  function toNumberOrUndefined(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const n = Number(trimmed.replace(",", "."));
+    return Number.isFinite(n) ? n : undefined;
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -145,22 +286,43 @@ export default function NewSensorForm({
     markTouched("code");
     markTouched("type");
     markTouched("location");
+    markTouched("unit");
 
     if (!canSubmit) return;
 
     setSubmitting(true);
     try {
-      await new Promise((r) => setTimeout(r, 600));
-
       if (mode === "edit") {
-        console.log("Editar sensor:", form);
-        alert("Alterações salvas (mock) ✅");
         onSubmitSuccess?.();
         return;
       }
 
-      console.log("Novo sensor:", form);
-      alert("Sensor cadastrado (mock) ✅");
+      const plantUnit = resolveUnit(form.type, plantDetails);
+      const unitToSend =
+        plantUnit ||
+        form.unit ||
+        defaultUnitForType(form.type as any);
+
+      const apiType =
+        form.type === "TEMPERATURA" ||
+        form.type === "UMIDADE" ||
+        form.type === "LUMINOSIDADE" ||
+        form.type === "PH"
+          ? mapUiTypeToApi(form.type as any)
+          : form.type;
+
+      await createSensor({
+        sensorName: form.name.trim(),
+        hardwareId: form.code.trim(),
+        type: apiType,
+        location: form.location,
+        unit: unitToSend,
+        alertsEnabled: form.alertsEnabled,
+        plantId: form.plantId ? Number(form.plantId) : undefined,
+        readingIntervalSeconds: toNumberOrUndefined(form.readIntervalSeconds),
+        notes: form.notes.trim() ? form.notes.trim() : undefined,
+      });
+
       setForm(initial);
       setTouched({});
       onSubmitSuccess?.();
@@ -247,6 +409,16 @@ export default function NewSensorForm({
           />
 
           <SelectField
+            label="Unidade*"
+            placeholder="Selecione a unidade"
+            value={form.unit}
+            options={unitOptions}
+            onChange={(v) => update("unit", v)}
+            onBlur={() => markTouched("unit")}
+            error={touched.unit ? errors.unit : ""}
+          />
+
+          <SelectField
             label="Intervalo de Leitura (segundos)"
             placeholder="Selecione o tipo"
             value={form.readIntervalSeconds}
@@ -283,7 +455,7 @@ export default function NewSensorForm({
 
       {/* Seção 3 - Alertas */}
       <FormSection
-        title="Configuração de Alertas"
+        title="Configurações de Alertas"
         icon={<Cpu className="h-5 w-5 text-[var(--plant-primary)]" />}
       >
         <div className="flex items-center justify-between gap-4">
@@ -346,3 +518,5 @@ export default function NewSensorForm({
     </form>
   );
 }
+
+
