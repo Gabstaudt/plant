@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import PageHeader from "@/app/components/layout/PageHeader";
 import SensorsToolbar, { type SensorsQuickFilters } from "@/app/components/sensors/SensorsToolbar";
 import SensorCard from "@/app/components/sensors/SensorCard";
 import Pagination from "@/app/components/ui/Pagination";
-import { sampleSensors } from "@/app/components/mocks/sensors/sensors.mocks";
+import { listSensors, mapSensorToCard, type SensorCardView } from "@/app/lib/sensors.api";
 
 const initialQuick: SensorsQuickFilters = {
   query: "",
@@ -20,11 +20,32 @@ export default function SensorsPage() {
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(6); // print parece 2 colunas -> 6 fica legal
+  const [sensors, setSensors] = useState<SensorCardView[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await listSensors();
+        if (!active) return;
+        const mapped = (res?.data ?? []).map(mapSensorToCard);
+        setSensors(mapped);
+      } catch {
+        if (active) setSensors([]);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const q = quick.query.trim().toLowerCase();
 
-    return sampleSensors.filter((s) => {
+    return sensors.filter((s) => {
       if (q) {
         const match =
           s.name.toLowerCase().includes(q) ||
@@ -40,7 +61,7 @@ export default function SensorsPage() {
 
       return true;
     });
-  }, [quick]);
+  }, [quick, sensors]);
 
   const total = filtered.length;
 
@@ -56,7 +77,7 @@ export default function SensorsPage() {
         subtitle="Inventário e status de todos os sensores"
         right={
           <Link href="/sensors/new" className="btn btn-primary rounded-full px-5 py-2">
-            <span className="inline-flex -ml-1 mr-1 w-5 h-5 items-center justify-center">＋</span>
+            <span className="inline-flex -ml-1 mr-1 w-5 h-5 items-center justify-center">+</span>
             Novo Sensor
           </Link>
         }
@@ -71,9 +92,10 @@ export default function SensorsPage() {
       />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
-        {paged.map((s) => (
-          <SensorCard key={s.id} sensor={s} />
-        ))}
+        {!loading &&
+          paged.map((s) => (
+            <SensorCard key={s.id} sensor={s} />
+          ))}
       </div>
 
       <Pagination
@@ -89,3 +111,4 @@ export default function SensorsPage() {
     </div>
   );
 }
+
