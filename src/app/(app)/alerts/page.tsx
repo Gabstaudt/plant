@@ -388,7 +388,7 @@ export default function AlertsPage() {
             type="button"
             onClick={() => setTab("fired")}
             className={[
-              "flex-1 rounded-xl px-4 py-2 text-sm font-semibold",
+              "flex-1 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold whitespace-nowrap",
               tab === "fired"
                 ? "bg-[var(--plant-primary)] text-white"
                 : "text-[var(--plant-graphite)] hover:bg-black/5",
@@ -400,7 +400,7 @@ export default function AlertsPage() {
             type="button"
             onClick={() => setTab("rules")}
             className={[
-              "flex-1 rounded-xl px-4 py-2 text-sm font-semibold",
+              "flex-1 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold whitespace-nowrap",
               tab === "rules"
                 ? "bg-[var(--plant-primary)] text-white"
                 : "text-[var(--plant-graphite)] hover:bg-black/5",
