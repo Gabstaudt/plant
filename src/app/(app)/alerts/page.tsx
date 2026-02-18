@@ -285,9 +285,12 @@ export default function AlertsPage() {
                   <button className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5">
                     Resolver
                   </button>
-                  <button className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5">
+                  <Link
+                    href={`/alerts/${a.id}`}
+                    className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5"
+                  >
                     Ver Detalhes
-                  </button>
+                  </Link>
                 </div>
               </div>
 
