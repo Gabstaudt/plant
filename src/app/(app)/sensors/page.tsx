@@ -61,7 +61,7 @@ export default function SensorsPage() {
 
       return true;
     });
-  }, [quick]);
+  }, [quick, sensors]);
 
   const total = filtered.length;
 
