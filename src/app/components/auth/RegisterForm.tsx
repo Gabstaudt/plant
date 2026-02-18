@@ -13,6 +13,7 @@ export default function RegisterForm() {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [isMasterAdmin, setIsMasterAdmin] = useState(false);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -23,7 +24,11 @@ export default function RegisterForm() {
       fullName: String(fd.get("fullName") || ""),
       email: String(fd.get("email") || ""),
       password: String(fd.get("password") || ""),
+      confirmPassword: String(fd.get("confirmPassword") || ""),
       dateOfBirth: String(fd.get("dateOfBirth") || ""),
+      ecosystemCode: String(fd.get("ecosystemCode") || ""),
+      isMasterAdmin: isMasterAdmin,
+      ecosystemName: String(fd.get("ecosystemName") || ""),
     };
 
     const parsed = registerSchema.safeParse(data);
@@ -38,7 +43,15 @@ export default function RegisterForm() {
         // 1) Registrar 
         await api("/auth/register", {
           method: "POST",
-          body: JSON.stringify(parsed.data),
+          body: JSON.stringify({
+            fullName: parsed.data.fullName,
+            email: parsed.data.email,
+            password: parsed.data.password,
+            dateOfBirth: parsed.data.dateOfBirth,
+            ecosystemCode: parsed.data.ecosystemCode,
+            ecosystemName: parsed.data.ecosystemName,
+            isMasterAdmin: parsed.data.isMasterAdmin,
+          }),
         });
 
         // 2) Ir para a tela de login com flag de sucesso
@@ -58,46 +71,58 @@ export default function RegisterForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      <div>
-        <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="fullName">
-          Nome completo
-        </label>
-        <input
-          id="fullName"
-          name="fullName"
-          type="text"
-          placeholder="Maria Silva"
-          className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
-                     focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
-        />
-      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="fullName">
+            Nome completo
+          </label>
+          <input
+            id="fullName"
+            name="fullName"
+            type="text"
+            placeholder="Maria Silva"
+            className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-2.5 outline-none transition
+                       focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
+          />
+        </div>
 
-      <div>
-        <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="email">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="user@gmail.com"
-          className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
-                     focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
-        />
+        <div>
+          <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="email">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="user@gmail.com"
+            className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-2.5 outline-none transition
+                       focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
+          />
+        </div>
       </div>
 
       <div>
         <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="password">
           Senha
         </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="Mínimo de 6 caracteres"
-          className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
-                     focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
-        />
+        <div className="grid gap-4 md:grid-cols-2">
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="Mínimo de 6 caracteres"
+            className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-2.5 outline-none transition
+                       focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
+          />
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            placeholder="Confirmar senha"
+            className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-2.5 outline-none transition
+                       focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
+          />
+        </div>
       </div>
 
       <div>
@@ -108,9 +133,57 @@ export default function RegisterForm() {
           id="dateOfBirth"
           name="dateOfBirth"
           type="date"
-          className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-3 outline-none transition
+          className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-2.5 outline-none transition
                      focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
         />
+      </div>
+
+      <div className="rounded-2xl border border-black/10 bg-white p-4">
+        <div className="flex items-center gap-3">
+          <input
+            id="isMasterAdmin"
+            name="isMasterAdmin"
+            type="checkbox"
+            checked={isMasterAdmin}
+            onChange={(e) => setIsMasterAdmin(e.target.checked)}
+            className="h-4 w-4 accent-[var(--plant-primary)]"
+          />
+          <label htmlFor="isMasterAdmin" className="text-sm font-semibold text-[var(--plant-dark)]">
+            Sou o primeiro administrador (criar novo ecossistema)
+          </label>
+        </div>
+
+        <div className="mt-4">
+          {!isMasterAdmin ? (
+            <div>
+              <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="ecosystemCode">
+                Código do ecossistema
+              </label>
+              <input
+                id="ecosystemCode"
+                name="ecosystemCode"
+                type="text"
+                placeholder="Ex: ECO-8F2C9A"
+                className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-2.5 outline-none transition
+                           focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="label block mb-2 font-semibold text-[var(--plant-dark)]" htmlFor="ecosystemName">
+                Nome do ecossistema
+              </label>
+              <input
+                id="ecosystemName"
+                name="ecosystemName"
+                type="text"
+                placeholder="Ex: Plant Connect"
+                className="w-full rounded-xl border border-[var(--plant-dark)]/20 bg-white px-4 py-2.5 outline-none transition
+                           focus:border-[var(--plant-primary)] focus:ring-2 focus:ring-[var(--plant-primary)]/20"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {error && (
