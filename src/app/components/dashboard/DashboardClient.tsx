@@ -36,8 +36,12 @@ const EMPTY_SUMMARY: Summary = {
   },
 };
 
+function isAdminRole(role: Role) {
+  return role === "ADMIN" || role === "ADMIN_MASTER";
+}
+
 export default function DashboardClient() {
-  const role = useRole(); // lê do localStorage (ADMIN | USER)
+  const role = useRole(); // lê do localStorage (ADMIN_MASTER | ADMIN | USER)
   const [data, setData] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -89,7 +93,7 @@ export default function DashboardClient() {
             className="btn btn-outline bg-white text-[var(--plant-dark)] font-semibold rounded-full px-5 py-2"
           >
             <span className="inline-flex -ml-1 mr-1 w-5 h-5 items-center justify-center">＋</span>
-            {role === "ADMIN" ? "Nova Planta" : "Adicionar Planta"}
+            {isAdminRole(role) ? "Nova Planta" : "Adicionar Planta"}
           </Link>
 
           <input
@@ -242,7 +246,7 @@ function buildCards(data: Summary, role: Role) {
     },
   ];
 
-  if (role === "ADMIN") {
+  if (isAdminRole(role)) {
     return base;
   }
   return base.map((c) =>

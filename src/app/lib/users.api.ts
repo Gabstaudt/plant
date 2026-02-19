@@ -44,3 +44,10 @@ export async function approveEcosystemRequest(id: number, role?: "ADMIN" | "VIEW
 export async function rejectEcosystemRequest(id: number) {
   return api<EcosystemUser>(`/ecosystems/requests/${id}/reject`, { method: "PATCH" });
 }
+
+export async function updateEcosystemUserRole(id: number, role: "ADMIN" | "VIEWER") {
+  return api<EcosystemUser>(`/ecosystems/users/${id}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  });
+}

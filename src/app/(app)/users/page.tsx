@@ -20,6 +20,7 @@ import {
   listEcosystemRequests,
   listEcosystemUsers,
   rejectEcosystemRequest,
+  updateEcosystemUserRole,
   type EcosystemRequest,
   type EcosystemUser,
   type Role,
@@ -162,6 +163,23 @@ export default function UsersPage() {
     try {
       await rejectEcosystemRequest(id);
       setRequests((prev) => prev.filter((r) => r.id !== id));
+    } catch {
+      // no-op
+    }
+  }
+
+  async function handleToggleRole(user: UserRow) {
+    if (user.role === "ADMIN_MASTER") return;
+    const nextRole = user.role === "ADMIN" ? "VIEWER" : "ADMIN";
+    try {
+      const updated = await updateEcosystemUserRole(user.id, nextRole);
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id
+            ? { ...u, role: updated.role, status: updated.status }
+            : u,
+        ),
+      );
     } catch {
       // no-op
     }
@@ -334,7 +352,10 @@ export default function UsersPage() {
                     {u.lastLogin}
                   </div>
                 </div>
-                <button className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 hover:bg-black/5">
+                <button
+                  onClick={() => handleToggleRole(u)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 hover:bg-black/5"
+                >
                   <Shield className="h-4 w-4 text-black/50" />
                 </button>
                 <button className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100">
