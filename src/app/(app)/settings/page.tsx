@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
   Settings as SettingsIcon,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import PageHeader from "@/app/components/layout/PageHeader";
+import { api } from "@/app/lib/http";
 
 type Permission = {
   id: string;
@@ -85,16 +86,44 @@ function Toggle({
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState({
-    name: "João Silva",
-    email: "joao@plantmonitor.com",
-    birth: "1996-01-12",
+    name: "",
+    email: "",
+    birth: "",
   });
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
   const [showPasswordFields, setShowPasswordFields] = useState(false);
   const [passwords, setPasswords] = useState({
     current: "",
     next: "",
     confirm: "",
   });
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const me = await api<{
+          fullName: string;
+          email: string;
+          dateOfBirth?: string | null;
+        }>("/users/me");
+        if (!active) return;
+        setProfile({
+          name: me.fullName ?? "",
+          email: me.email ?? "",
+          birth: me.dateOfBirth ? String(me.dateOfBirth).slice(0, 10) : "",
+        });
+      } catch {
+        if (!active) return;
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -184,6 +213,55 @@ export default function SettingsPage() {
     ]);
     setEditingRoleId(id);
     setRoleModalOpen(false);
+  }
+
+  async function handleSaveProfile() {
+    setProfileMsg(null);
+    setSavingProfile(true);
+    try {
+      await api("/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({
+          fullName: profile.name.trim(),
+          email: profile.email.trim(),
+          dateOfBirth: profile.birth ? profile.birth : undefined,
+        }),
+      });
+      setProfileMsg("Perfil atualizado com sucesso.");
+    } catch (e: any) {
+      setProfileMsg(e?.message || "Não foi possível salvar o perfil.");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function handleSavePassword() {
+    setPasswordMsg(null);
+    if (!passwords.current || !passwords.next || !passwords.confirm) {
+      setPasswordMsg("Preencha todos os campos de senha.");
+      return;
+    }
+    if (passwords.next !== passwords.confirm) {
+      setPasswordMsg("A confirmação não confere.");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await api("/users/me/password", {
+        method: "PATCH",
+        body: JSON.stringify({
+          currentPassword: passwords.current,
+          newPassword: passwords.next,
+        }),
+      });
+      setPasswordMsg("Senha atualizada com sucesso.");
+      setPasswords({ current: "", next: "", confirm: "" });
+      setShowPasswordFields(false);
+    } catch (e: any) {
+      setPasswordMsg(e?.message || "Não foi possível alterar a senha.");
+    } finally {
+      setSavingPassword(false);
+    }
   }
 
   const groupedPermissions = useMemo(() => {
@@ -296,8 +374,13 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button className="btn btn-primary rounded-full px-5 py-2">
-                    Salvar Senha
+                  <button
+                    type="button"
+                    onClick={handleSavePassword}
+                    className="btn btn-primary rounded-full px-5 py-2"
+                    disabled={savingPassword}
+                  >
+                    {savingPassword ? "Salvando..." : "Salvar Senha"}
                   </button>
                   <button
                     type="button"
@@ -307,12 +390,20 @@ export default function SettingsPage() {
                     Cancelar
                   </button>
                 </div>
+                {passwordMsg ? (
+                  <div className="text-xs text-black/50">{passwordMsg}</div>
+                ) : null}
               </div>
             ) : null}
 
             <div className="flex flex-wrap items-center gap-3">
-              <button className="btn btn-primary rounded-full px-6 py-2">
-                Salvar Perfil
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                className="btn btn-primary rounded-full px-6 py-2"
+                disabled={savingProfile}
+              >
+                {savingProfile ? "Salvando..." : "Salvar Perfil"}
               </button>
               <button
                 type="button"
@@ -322,6 +413,9 @@ export default function SettingsPage() {
                 Trocar Senha
               </button>
             </div>
+            {profileMsg ? (
+              <div className="text-xs text-black/50">{profileMsg}</div>
+            ) : null}
           </div>
         </div>
 
