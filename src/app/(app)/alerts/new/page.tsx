@@ -68,6 +68,10 @@ export default function NewAlertRulePage() {
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [sensors, setSensors] = useState<SensorStatusResponse[]>([]);
+  const [selectedBase, setSelectedBase] = useState<{ type: string; unit: string }>({
+    type: "",
+    unit: "",
+  });
 
   useEffect(() => {
     let active = true;
@@ -158,6 +162,19 @@ export default function NewAlertRulePage() {
   function toggleSensor(id: number) {
     setForm((p) => {
       const exists = p.sensorIds.includes(id);
+      if (!exists) {
+        const sensor = sensors.find((s) => s.id === id);
+        if (sensor) {
+          const baseType = selectedBase.type || sensor.type || "";
+          const baseUnit = selectedBase.unit || sensor.unit || "";
+          if (
+            (baseType && sensor.type && sensor.type !== baseType) ||
+            (baseUnit && sensor.unit && sensor.unit !== baseUnit)
+          ) {
+            return p;
+          }
+        }
+      }
       return {
         ...p,
         sensorIds: exists
@@ -166,6 +183,33 @@ export default function NewAlertRulePage() {
       };
     });
   }
+
+  useEffect(() => {
+    if (!form.sensorIds.length) {
+      setSelectedBase({ type: "", unit: "" });
+      return;
+    }
+    const first = sensors.find((s) => s.id === form.sensorIds[0]);
+    if (!first) return;
+    const nextType = first.type ?? "";
+    const nextUnit = first.unit ?? "";
+    setSelectedBase({ type: nextType, unit: nextUnit });
+    if (nextType && nextType !== form.measurementType) {
+      update("measurementType", nextType);
+    }
+    if (nextUnit && nextUnit !== form.unit) {
+      update("unit", nextUnit);
+    }
+  }, [form.sensorIds, sensors]);
+
+  const filteredSensors = useMemo(() => {
+    if (!selectedBase.type && !selectedBase.unit) return sensors;
+    return sensors.filter((s) => {
+      const typeOk = selectedBase.type ? s.type === selectedBase.type : true;
+      const unitOk = selectedBase.unit ? s.unit === selectedBase.unit : true;
+      return typeOk && unitOk;
+    });
+  }, [sensors, selectedBase]);
 
   function toNumberOrUndefined(value: string) {
     const trimmed = value.trim();
@@ -306,7 +350,7 @@ export default function NewAlertRulePage() {
           icon={<AlertTriangle className="h-5 w-5 text-[var(--plant-primary)]" />}
         >
           <div className="grid gap-3 md:grid-cols-2">
-            {sensors.map((s) => (
+            {filteredSensors.map((s) => (
               <label
                 key={s.id}
                 className="flex items-start gap-3 rounded-xl border border-black/10 bg-white px-4 py-3 text-sm"
@@ -323,11 +367,12 @@ export default function NewAlertRulePage() {
                   </div>
                   <div className="text-xs text-black/45">
                     {s.hardwareId} • {s.type}
+                    {s.unit ? ` • ${s.unit}` : ""}
                   </div>
                 </div>
               </label>
             ))}
-            {!sensors.length ? (
+            {!filteredSensors.length ? (
               <div className="text-sm text-black/45">
                 Nenhum sensor encontrado.
               </div>
