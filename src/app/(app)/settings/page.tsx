@@ -84,7 +84,17 @@ function Toggle({
 }
 
 export default function SettingsPage() {
-  const [profile, setProfile] = useState({ name: "João Silva", email: "joao@plantmonitor.com" });
+  const [profile, setProfile] = useState({
+    name: "João Silva",
+    email: "joao@plantmonitor.com",
+    birth: "1996-01-12",
+  });
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
+  const [passwords, setPasswords] = useState({
+    current: "",
+    next: "",
+    confirm: "",
+  });
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -228,10 +238,90 @@ export default function SettingsPage() {
                            focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30"
               />
             </div>
+            <div>
+              <label className="block text-sm font-semibold text-[var(--plant-graphite)]">Data de nascimento</label>
+              <input
+                type="date"
+                value={profile.birth}
+                onChange={(e) => setProfile((p) => ({ ...p, birth: e.target.value }))}
+                className="mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm outline-none
+                           focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30"
+              />
+            </div>
 
-            <button className="btn btn-primary rounded-full px-6 py-2">
-              Salvar Perfil
-            </button>
+            {showPasswordFields ? (
+              <div className="rounded-xl border border-black/10 bg-[var(--plant-ice)]/60 p-4 space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--plant-graphite)]">
+                    Senha atual
+                  </label>
+                  <input
+                    type="password"
+                    value={passwords.current}
+                    onChange={(e) =>
+                      setPasswords((p) => ({ ...p, current: e.target.value }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm outline-none
+                               focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30"
+                  />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--plant-graphite)]">
+                      Nova senha
+                    </label>
+                    <input
+                      type="password"
+                      value={passwords.next}
+                      onChange={(e) =>
+                        setPasswords((p) => ({ ...p, next: e.target.value }))
+                      }
+                      className="mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm outline-none
+                                 focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--plant-graphite)]">
+                      Confirmar nova senha
+                    </label>
+                    <input
+                      type="password"
+                      value={passwords.confirm}
+                      onChange={(e) =>
+                        setPasswords((p) => ({ ...p, confirm: e.target.value }))
+                      }
+                      className="mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm outline-none
+                                 focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button className="btn btn-primary rounded-full px-5 py-2">
+                    Salvar Senha
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordFields(false)}
+                    className="rounded-full border border-black/10 px-5 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button className="btn btn-primary rounded-full px-6 py-2">
+                Salvar Perfil
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPasswordFields(true)}
+                className="rounded-full border border-black/10 px-6 py-2 text-sm font-semibold text-[var(--plant-graphite)] hover:bg-black/5"
+              >
+                Trocar Senha
+              </button>
+            </div>
           </div>
         </div>
 
