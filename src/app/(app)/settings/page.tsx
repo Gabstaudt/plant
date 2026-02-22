@@ -14,6 +14,12 @@ import {
 
 import PageHeader from "@/app/components/layout/PageHeader";
 import { api } from "@/app/lib/http";
+import {
+  createRoleProfile,
+  listRoleProfiles,
+  updateRoleProfile,
+  type RoleProfile,
+} from "@/app/lib/roles.api";
 
 type Permission = {
   id: string;
@@ -116,6 +122,20 @@ export default function SettingsPage() {
           email: me.email ?? "",
           birth: me.dateOfBirth ? String(me.dateOfBirth).slice(0, 10) : "",
         });
+        const profilesRes = await listRoleProfiles();
+        if (!active) return;
+        const profiles = profilesRes?.data ?? [];
+        setRoles(
+          profiles.map((p: RoleProfile) => ({
+            id: p.id,
+            name: p.name,
+            summary: `${p.permissions?.length ?? 0} permissões ativas`,
+            perms: permissions.reduce((acc, perm) => {
+              acc[perm.id] = p.permissions?.includes(perm.id) ?? false;
+              return acc;
+            }, {} as Record<string, boolean>),
+          })),
+        );
       } catch {
         if (!active) return;
       }
@@ -136,38 +156,9 @@ export default function SettingsPage() {
     permissions.reduce((acc, p) => ({ ...acc, [p.id]: false }), {}),
   );
   const [roles, setRoles] = useState<
-    { id: string; name: string; summary: string; perms: Record<string, boolean> }[]
-  >([
-    {
-      id: "r-1",
-      name: "Gerente",
-      summary: "Pode criar/editar plantas e sensores.",
-      perms: permissions.reduce((acc, p) => {
-        if (
-          ["nav:dashboard", "nav:plants", "nav:sensors", "nav:alerts", "settings:view"].includes(
-            p.id,
-          )
-        ) {
-          acc[p.id] = true;
-        }
-        if (p.id.startsWith("plants:") || p.id.startsWith("sensors:")) acc[p.id] = true;
-        return acc;
-      }, {} as Record<string, boolean>),
-    },
-    {
-      id: "r-2",
-      name: "Leitor",
-      summary: "Acesso apenas visualização.",
-      perms: permissions.reduce((acc, p) => {
-        if (p.id.startsWith("nav:")) acc[p.id] = true;
-        if (["plants:view:details", "sensors:view:readings", "alerts:view:details"].includes(p.id)) {
-          acc[p.id] = true;
-        }
-        return acc;
-      }, {} as Record<string, boolean>),
-    },
-  ]);
-  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+    { id: number; name: string; summary: string; perms: Record<string, boolean> }[]
+  >([]);
+  const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
 
   const selectedCount = useMemo(
@@ -186,7 +177,7 @@ export default function SettingsPage() {
     setRoleModalOpen(true);
   }
 
-  function startEditRole(id: string) {
+  function startEditRole(id: number) {
     const role = roles.find((r) => r.id === id);
     if (!role) return;
     setEditingRoleId(role.id);
@@ -195,23 +186,51 @@ export default function SettingsPage() {
     setRoleModalOpen(true);
   }
 
-  function saveRole() {
+  async function saveRole() {
     const summary = `${selectedCount} permissões ativas`;
+    const permissionsList = Object.entries(rolePerms)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
     if (editingRoleId) {
+      const updated = await updateRoleProfile(editingRoleId, {
+        name: roleName,
+        permissions: permissionsList,
+      });
       setRoles((prev) =>
         prev.map((r) =>
-          r.id === editingRoleId ? { ...r, name: roleName, summary, perms: rolePerms } : r,
+          r.id === editingRoleId
+            ? {
+                ...r,
+                name: updated.name,
+                summary,
+                perms: permissions.reduce((acc, perm) => {
+                  acc[perm.id] = updated.permissions?.includes(perm.id) ?? false;
+                  return acc;
+                }, {} as Record<string, boolean>),
+              }
+            : r,
         ),
       );
       setRoleModalOpen(false);
       return;
     }
-    const id = `r-${Math.random().toString(36).slice(2, 8)}`;
+    const created = await createRoleProfile({
+      name: roleName,
+      permissions: permissionsList,
+    });
     setRoles((prev) => [
       ...prev,
-      { id, name: roleName, summary, perms: rolePerms },
+      {
+        id: created.id,
+        name: created.name,
+        summary,
+        perms: permissions.reduce((acc, perm) => {
+          acc[perm.id] = created.permissions?.includes(perm.id) ?? false;
+          return acc;
+        }, {} as Record<string, boolean>),
+      },
     ]);
-    setEditingRoleId(id);
+    setEditingRoleId(created.id);
     setRoleModalOpen(false);
   }
 
@@ -553,6 +572,9 @@ export default function SettingsPage() {
               </div>
             </div>
           ))}
+          {!roles.length ? (
+            <div className="text-sm text-black/45">Nenhum perfil criado ainda.</div>
+          ) : null}
         </div>
       </div>
 
