@@ -17,6 +17,7 @@ export type EcosystemUser = {
   role: Role;
   status: Status;
   lastLoginAt: string | null;
+  roleProfileId?: number | null;
   createdAt: string;
 };
 
@@ -49,5 +50,12 @@ export async function updateEcosystemUserRole(id: number, role: "ADMIN" | "VIEWE
   return api<EcosystemUser>(`/ecosystems/users/${id}/role`, {
     method: "PATCH",
     body: JSON.stringify({ role }),
+  });
+}
+
+export async function updateEcosystemUserProfile(id: number, roleProfileId: number | null) {
+  return api<EcosystemUser>(`/ecosystems/users/${id}/profile`, {
+    method: "PATCH",
+    body: JSON.stringify({ roleProfileId }),
   });
 }

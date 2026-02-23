@@ -21,11 +21,13 @@ import {
   listEcosystemUsers,
   rejectEcosystemRequest,
   updateEcosystemUserRole,
+  updateEcosystemUserProfile,
   type EcosystemRequest,
   type EcosystemUser,
   type Role,
   type Status,
 } from "@/app/lib/users.api";
+import { listRoleProfiles, type RoleProfile } from "@/app/lib/roles.api";
 
 type UserRow = {
   id: number;
@@ -34,6 +36,8 @@ type UserRow = {
   role: Role;
   status: Status;
   lastLogin: string;
+  profileId?: number | null;
+  profileName?: string | null;
 };
 
 type RequestRow = {
@@ -46,12 +50,6 @@ type RequestRow = {
 
 const usersFallback: UserRow[] = [];
 const requestsFallback: RequestRow[] = [];
-
-function roleLabel(role: Role) {
-  if (role === "ADMIN_MASTER") return "Administrador";
-  if (role === "ADMIN") return "Administrador";
-  return "Usuário";
-}
 
 function statusBadge(status: Status) {
   if (status === "ATIVO") {
@@ -84,18 +82,25 @@ export default function UsersPage() {
   const [ecosystemCode, setEcosystemCode] = useState<string>("—");
   const [users, setUsers] = useState<UserRow[]>(usersFallback);
   const [requests, setRequests] = useState<RequestRow[]>(requestsFallback);
+  const [profiles, setProfiles] = useState<RoleProfile[]>([]);
+  const [profileModal, setProfileModal] = useState<{ open: boolean; userId?: number }>({
+    open: false,
+  });
+  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
     async function load() {
       try {
-        const [eco, usersRes, requestsRes] = await Promise.all([
+        const [eco, usersRes, requestsRes, profilesRes] = await Promise.all([
           getEcosystem(),
           listEcosystemUsers(),
           listEcosystemRequests(),
+          listRoleProfiles(),
         ]);
         if (!mounted) return;
         setEcosystemCode(eco.code);
+        setProfiles(profilesRes?.data ?? []);
         setUsers(
           usersRes.map((u: EcosystemUser) => ({
             id: u.id,
@@ -104,6 +109,8 @@ export default function UsersPage() {
             role: u.role,
             status: u.status,
             lastLogin: formatDateTime(u.lastLoginAt),
+            profileId: u.roleProfileId ?? null,
+            profileName: (u as any).roleProfile?.name ?? null,
           })),
         );
         setRequests(
@@ -152,6 +159,8 @@ export default function UsersPage() {
           role: u.role,
           status: u.status,
           lastLogin: formatDateTime(u.lastLoginAt),
+          profileId: u.roleProfileId ?? null,
+          profileName: (u as any).roleProfile?.name ?? null,
         })),
       );
     } catch {
@@ -180,6 +189,29 @@ export default function UsersPage() {
             : u,
         ),
       );
+    } catch {
+      // no-op
+    }
+  }
+
+  function openProfileModal(user: UserRow) {
+    setSelectedProfileId(user.profileId ?? null);
+    setProfileModal({ open: true, userId: user.id });
+  }
+
+  async function saveProfileForUser() {
+    if (!profileModal.userId) return;
+    try {
+      const updated = await updateEcosystemUserProfile(
+        profileModal.userId,
+        selectedProfileId,
+      );
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === updated.id ? { ...u, profileId: updated.roleProfileId ?? null } : u,
+        ),
+      );
+      setProfileModal({ open: false });
     } catch {
       // no-op
     }
@@ -255,7 +287,9 @@ export default function UsersPage() {
                     <div className="text-xs text-black/45">{r.email}</div>
                     <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
                       <Clock className="h-3.5 w-3.5" />
-                      {roleLabel(r.requestedRole)}
+                      {r.requestedRole === "ADMIN_MASTER" || r.requestedRole === "ADMIN"
+                        ? "Administrador"
+                        : "Usuário"}
                     </div>
                     <div className="mt-2 text-xs text-black/35">
                       {r.requestedAt}
@@ -327,9 +361,6 @@ export default function UsersPage() {
                   </div>
                   <div className="text-sm text-black/45">{u.email}</div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      {roleLabel(u.role)}
-                    </span>
                     <span
                       className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusBadge(
                         u.status,
@@ -341,6 +372,11 @@ export default function UsersPage() {
                           ? "Pendente"
                           : "Bloqueado"}
                     </span>
+                    {u.profileName ? (
+                      <span className="rounded-full border border-[var(--plant-primary)]/20 bg-[var(--plant-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--plant-primary)]">
+                        {u.profileName}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -353,7 +389,7 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleToggleRole(u)}
+                  onClick={() => openProfileModal(u)}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 hover:bg-black/5"
                 >
                   <Shield className="h-4 w-4 text-black/50" />
@@ -372,6 +408,69 @@ export default function UsersPage() {
           </div>
         ) : null}
       </div>
+
+      {profileModal.open ? (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40"
+            onClick={() => setProfileModal({ open: false })}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+              <div className="flex items-center justify-between border-b border-black/10 px-5 py-4">
+                <div>
+                  <div className="text-lg font-semibold text-[var(--plant-graphite)]">
+                    Perfil do usuário
+                  </div>
+                  <div className="text-sm text-black/45">
+                    Selecione o perfil de permissões
+                  </div>
+                </div>
+                <button
+                  onClick={() => setProfileModal({ open: false })}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 hover:bg-black/5"
+                >
+                  <X className="h-4 w-4 text-black/50" />
+                </button>
+              </div>
+              <div className="px-5 py-4">
+                <label className="block text-sm font-semibold text-[var(--plant-graphite)]">
+                  Perfil
+                </label>
+                <select
+                  value={selectedProfileId ?? ""}
+                  onChange={(e) =>
+                    setSelectedProfileId(e.target.value ? Number(e.target.value) : null)
+                  }
+                  className="mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm outline-none
+                             focus:ring-2 focus:ring-[var(--plant-primary)]/20 focus:border-[var(--plant-primary)]/30"
+                >
+                  <option value="">Sem perfil</option>
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center justify-end gap-3 border-t border-black/10 px-5 py-4">
+                <button
+                  onClick={() => setProfileModal({ open: false })}
+                  className="rounded-xl px-5 py-2 text-sm font-semibold border border-black/15 bg-white text-[var(--plant-graphite)] hover:bg-black/5"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveProfileForUser}
+                  className="btn btn-primary rounded-full px-6 py-2"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
