@@ -203,7 +203,6 @@ export default function NewSensorForm({
     name: !form.name.trim() ? "Informe o nome do sensor." : "",
     code: !form.code.trim() ? "Informe o ID do sensor." : "",
     type: !form.type ? "Selecione o tipo do sensor." : "",
-    location: !form.location ? "Selecione a localização." : "",
     unit: !form.unit ? "Selecione a unidade." : "",
   };
 
@@ -211,7 +210,6 @@ export default function NewSensorForm({
     !errors.name &&
     !errors.code &&
     !errors.type &&
-    !errors.location &&
     !errors.unit &&
     !submitting;
 
@@ -259,9 +257,8 @@ export default function NewSensorForm({
 
   useEffect(() => {
     if (!plantDetails) return;
-    if (plantDetails.location && plantDetails.location !== form.location) {
-      update("location", plantDetails.location);
-    }
+    const nextLocation = plantDetails.location ?? "";
+    if (nextLocation !== form.location) update("location", nextLocation);
     const plantType = plantDetails.idealRanges?.[0]?.type ?? "";
     if (plantType && plantType !== form.type) {
       update("type", plantType);
@@ -396,26 +393,29 @@ export default function NewSensorForm({
             onChange={(v) => update("type", v as FormState["type"])}
             onBlur={() => markTouched("type")}
             error={touched.type ? errors.type : ""}
+            allowCustom
           />
 
           <SelectField
-            label="Localização*"
-            placeholder="Selecione a localização"
+            label="Localização"
+            placeholder="Digite ou selecione a localização"
             value={form.location}
             options={locationOptions}
             onChange={(v) => update("location", v)}
             onBlur={() => markTouched("location")}
             error={touched.location ? errors.location : ""}
+            allowCustom
           />
 
           <SelectField
             label="Unidade*"
-            placeholder="Selecione a unidade"
+            placeholder="Digite ou selecione a unidade"
             value={form.unit}
             options={unitOptions}
             onChange={(v) => update("unit", v)}
             onBlur={() => markTouched("unit")}
             error={touched.unit ? errors.unit : ""}
+            allowCustom
           />
 
           <SelectField

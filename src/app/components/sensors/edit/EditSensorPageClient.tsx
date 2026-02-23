@@ -32,6 +32,7 @@ export default function EditSensorPageClient() {
           code: sensor.code,
           type: sensor.type,
           location: sensor.locationLabel,
+          unit: sensor.unit,
           readIntervalSeconds: String(sensor.readIntervalSeconds),
           notes: "",
           plantId: sensor.linkedPlant?.id ?? "",

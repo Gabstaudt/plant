@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type Role = "ADMIN" | "USER";
+export type Role = "ADMIN_MASTER" | "ADMIN" | "USER";
 
 /** Lê o role do localStorage  */
 export function useRole(initial?: Role): Role {

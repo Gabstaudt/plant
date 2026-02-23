@@ -23,8 +23,8 @@ const NAV: Item[] = [
   { href: "/sensors",   label: "Sensores",  roles: ["ALL"], Icon: (p) => <Gauge {...p} /> },
   { href: "/alerts",    label: "Alertas",   roles: ["ALL"], Icon: (p) => <AlertTriangle {...p} /> },
   { href: "/reports",   label: "Relatórios",roles: ["ALL"], Icon: (p) => <BarChart3 {...p} /> },
-  { href: "/users",     label: "Usuários",  roles: ["ADMIN"], Icon: (p) => <Users {...p} /> },
-  { href: "/settings",  label: "Configurações", roles: ["ADMIN"], Icon: (p) => <Settings {...p} /> },
+  { href: "/users",     label: "Usuários",  roles: ["ADMIN", "ADMIN_MASTER"], Icon: (p) => <Users {...p} /> },
+  { href: "/settings",  label: "Configurações", roles: ["ADMIN", "ADMIN_MASTER"], Icon: (p) => <Settings {...p} /> },
 ];
 
 function isActive(pathname: string, href: string) {
