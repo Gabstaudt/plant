@@ -59,3 +59,14 @@ export async function updateEcosystemUserProfile(id: number, roleProfileId: numb
     body: JSON.stringify({ roleProfileId }),
   });
 }
+
+export async function deleteEcosystemUser(id: number) {
+  return api<{ deleted: boolean }>(`/ecosystems/users/${id}`, { method: "DELETE" });
+}
+
+export async function updateEcosystemUserStatus(id: number, status: "ATIVO" | "BLOQUEADO") {
+  return api<EcosystemUser>(`/ecosystems/users/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}

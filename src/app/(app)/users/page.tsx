@@ -22,6 +22,8 @@ import {
   rejectEcosystemRequest,
   updateEcosystemUserRole,
   updateEcosystemUserProfile,
+  deleteEcosystemUser,
+  updateEcosystemUserStatus,
   type EcosystemRequest,
   type EcosystemUser,
   type Role,
@@ -87,6 +89,10 @@ export default function UsersPage() {
     open: false,
   });
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
+  const [selectedUserStatus, setSelectedUserStatus] = useState<"ATIVO" | "BLOQUEADO">("ATIVO");
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; userId?: number; name?: string }>({
+    open: false,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -196,22 +202,44 @@ export default function UsersPage() {
 
   function openProfileModal(user: UserRow) {
     setSelectedProfileId(user.profileId ?? null);
+    setSelectedUserStatus(user.status === "BLOQUEADO" ? "BLOQUEADO" : "ATIVO");
     setProfileModal({ open: true, userId: user.id });
   }
 
   async function saveProfileForUser() {
     if (!profileModal.userId) return;
     try {
-      const updated = await updateEcosystemUserProfile(
-        profileModal.userId,
-        selectedProfileId,
-      );
+      const [updatedProfile, updatedStatus] = await Promise.all([
+        updateEcosystemUserProfile(profileModal.userId, selectedProfileId),
+        updateEcosystemUserStatus(profileModal.userId, selectedUserStatus),
+      ]);
       setUsers((prev) =>
         prev.map((u) =>
-          u.id === updated.id ? { ...u, profileId: updated.roleProfileId ?? null } : u,
+          u.id === updatedProfile.id
+            ? {
+                ...u,
+                profileId: updatedProfile.roleProfileId ?? null,
+                status: updatedStatus.status,
+              }
+            : u,
         ),
       );
       setProfileModal({ open: false });
+    } catch {
+      // no-op
+    }
+  }
+
+  function openDeleteModal(user: UserRow) {
+    setDeleteModal({ open: true, userId: user.id, name: user.name });
+  }
+
+  async function confirmDeleteUser() {
+    if (!deleteModal.userId) return;
+    try {
+      await deleteEcosystemUser(deleteModal.userId);
+      setUsers((prev) => prev.filter((u) => u.id !== deleteModal.userId));
+      setDeleteModal({ open: false });
     } catch {
       // no-op
     }
@@ -394,7 +422,10 @@ export default function UsersPage() {
                 >
                   <Shield className="h-4 w-4 text-black/50" />
                 </button>
-                <button className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100">
+                <button
+                  onClick={() => openDeleteModal(u)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -452,6 +483,38 @@ export default function UsersPage() {
                     </option>
                   ))}
                 </select>
+
+                <div className="mt-4 flex items-center justify-between rounded-xl border border-black/10 px-4 py-3 text-sm">
+                  <div>
+                    <div className="font-semibold text-[var(--plant-graphite)]">Inativar usuário</div>
+                    <div className="text-xs text-black/45">
+                      Usuário inativo não consegue acessar o sistema
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedUserStatus(
+                        selectedUserStatus === "ATIVO" ? "BLOQUEADO" : "ATIVO",
+                      )
+                    }
+                    className={[
+                      "relative inline-flex h-7 w-12 items-center rounded-full transition-colors",
+                      selectedUserStatus === "BLOQUEADO"
+                        ? "bg-[var(--plant-primary)]"
+                        : "bg-black/10",
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm",
+                        selectedUserStatus === "BLOQUEADO"
+                          ? "translate-x-6"
+                          : "translate-x-1",
+                      ].join(" ")}
+                    />
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-end gap-3 border-t border-black/10 px-5 py-4">
                 <button
@@ -465,6 +528,46 @@ export default function UsersPage() {
                   className="btn btn-primary rounded-full px-6 py-2"
                 >
                   Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      {deleteModal.open ? (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setDeleteModal({ open: false })} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+              <div className="flex items-center justify-between border-b border-black/10 px-5 py-4">
+                <div>
+                  <div className="text-lg font-semibold text-[var(--plant-graphite)]">
+                    Excluir usuário
+                  </div>
+                  <div className="text-sm text-black/45">
+                    Tem certeza que deseja excluir {deleteModal.name}?
+                  </div>
+                </div>
+                <button
+                  onClick={() => setDeleteModal({ open: false })}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 hover:bg-black/5"
+                >
+                  <X className="h-4 w-4 text-black/50" />
+                </button>
+              </div>
+              <div className="flex items-center justify-end gap-3 px-5 py-4">
+                <button
+                  onClick={() => setDeleteModal({ open: false })}
+                  className="rounded-xl px-5 py-2 text-sm font-semibold border border-black/15 bg-white text-[var(--plant-graphite)] hover:bg-black/5"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteUser}
+                  className="rounded-full bg-red-600 px-6 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                >
+                  Excluir
                 </button>
               </div>
             </div>
