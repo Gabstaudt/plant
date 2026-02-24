@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Droplet, Thermometer, Sun, Sprout, MapPin, Cpu, LineChart } from "lucide-react";
 import { useRole, type Role } from "@/app/lib/auth.client";
 import { api } from "@/app/lib/http";
 import { sampleRecentPlants, sampleLatestReadings } from "@/app/components/mocks/dashboard/dashboard.mocks";
@@ -74,32 +75,25 @@ export default function DashboardClient() {
     <div className="space-y-6">
       {/* HERO */}
       <section
-        className="relative overflow-hidden rounded-2xl bg-[var(--plant-primary)] text-white p-6 md:p-8"
+        className="relative overflow-hidden rounded-2xl bg-[#1E5A32] text-white p-6 md:p-9 min-h-[180px]"
         style={{
           backgroundImage:
-            "linear-gradient(120deg, rgba(0,0,0,.0), rgba(0,0,0,.15)), url('/login/side.jpg')",
+            "linear-gradient(120deg, rgba(0,0,0,.05), rgba(0,0,0,.25)), url('/Fundo-dash.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <h1 className="text-2xl md:text-3xl font-black">Monitoramento Inteligente de Plantas</h1>
-        <p className="mt-1 text-white/90">
-          Acompanhe a saúde das suas plantas em tempo real com sensores IoT avançados.
-        </p>
-
-        <div className="mt-5 flex flex-col sm:flex-row gap-3">
+        <h1 className="text-2xl md:text-3xl font-extrabold">
+          Monitoramento Inteligente de Plantas
+        </h1>
+        <div className="mt-4">
           <Link
             href="/plants?new=1"
-            className="btn btn-outline bg-white text-[var(--plant-dark)] font-semibold rounded-full px-5 py-2"
+            className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[var(--plant-graphite)] shadow-sm"
           >
-            <span className="inline-flex -ml-1 mr-1 w-5 h-5 items-center justify-center">＋</span>
+            <span className="inline-flex h-4 w-4 items-center justify-center">＋</span>
             {isAdminRole(role) ? "Nova Planta" : "Adicionar Planta"}
           </Link>
-
-          <input
-            placeholder="Pesquisar plantas ou sensores..."
-            className="w-full sm:w-72 rounded-full bg-white/95 px-4 py-2 text-[var(--plant-graphite)] placeholder:text-black/50 outline-none focus:ring-2 focus:ring-white/50"
-          />
         </div>
       </section>
 
@@ -113,84 +107,133 @@ export default function DashboardClient() {
       {/* CARDS */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {(loading ? skeletonCards() : buildCards(safeData, role)).map((c) => (
-          <div key={c.key} className="rounded-2xl bg-white border border-black/5 p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold tracking-wide text-[var(--plant-graphite)]/60 uppercase">
-                {c.title}
-              </p>
-              <span
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
-                style={{ background: "color-mix(in srgb, var(--plant-primary) 15%, white)" }}
-              >
-                {c.badge}
-              </span>
-            </div>
-            <div className="mt-3 flex items-end justify-between">
-              <div className="text-3xl font-black text-[var(--plant-graphite)]">{c.value}</div>
-              <div
-                className={`text-sm font-semibold ${
-                  c.delta >= 0 ? "text-emerald-600" : "text-red-600"
-                }`}
-              >
-                {c.delta >= 0 ? "▲" : "▼"} {Math.abs(c.delta)}%
-              </div>
+          <div
+            key={c.key}
+            className="rounded-2xl border border-black/5 bg-[#ECF7EF] px-5 py-4"
+          >
+            <p className="text-[11px] font-semibold uppercase text-black/45">{c.title}</p>
+            <div className="mt-2 text-2xl font-extrabold text-[var(--plant-graphite)]">
+              {c.value}
             </div>
           </div>
         ))}
       </section>
 
       {/* LISTAS */}
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl bg-white border border-black/5 p-4">
+      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-[var(--plant-graphite)]">Plantas Recentes</h2>
-            <Link href="/plants" className="text-sm font-semibold text-[var(--plant-primary)] hover:underline">
+            <h2 className="text-base font-bold text-[var(--plant-graphite)]">Plantas Recentes</h2>
+            <Link
+              href="/plants"
+              className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold text-[var(--plant-graphite)] hover:bg-black/5"
+            >
               Ver todas
             </Link>
           </div>
-          <ul className="mt-3 space-y-3">
+          <div className="mt-3 space-y-3">
             {loading
               ? skeletonLines()
               : sampleRecentPlants(role).map((p) => (
-                  <li key={p.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-[var(--plant-primary)]/15" />
-                      <div>
-                        <p className="font-medium">{p.name}</p>
-                        <p className="text-xs text-black/60">{p.species}</p>
+                  <div key={p.id} className="rounded-2xl border border-black/5 bg-white p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-[var(--plant-primary)]/15 grid place-items-center">
+                          <Sprout className="h-5 w-5 text-[var(--plant-primary)]" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-[var(--plant-graphite)]">
+                            {p.name}
+                          </div>
+                          <div className="text-xs text-black/45">{p.species}</div>
+                          <div className="mt-2 flex items-center gap-2 text-xs text-black/45">
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin className="h-3.5 w-3.5 text-black/40" />
+                              Estufa A - Setor 1
+                            </span>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1">
+                              <Cpu className="h-3.5 w-3.5 text-black/40" />
+                              4 Sensores
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-0.5 text-[10px] font-semibold text-emerald-700">
+                        Online
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-3 text-xs text-black/55">
+                      <div className="flex items-center gap-2">
+                        <Droplet className="h-4 w-4 text-[#1D72F2]" />
+                        Umidade
+                        <span className="ml-1 font-semibold text-black/70">65%</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Thermometer className="h-4 w-4 text-[#F97316]" />
+                        Temp.
+                        <span className="ml-1 font-semibold text-black/70">24°C</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Sun className="h-4 w-4 text-[#FACC15]" />
+                        Luz
+                        <span className="ml-1 font-semibold text-black/70">78%</span>
                       </div>
                     </div>
-                    <span className="text-xs text-black/60">{p.createdAt}</span>
-                  </li>
+
+                    <div className="mt-3 flex items-center justify-between text-xs text-black/40">
+                      <span>Última leitura: {p.createdAt}</span>
+                      <button className="rounded-full border border-black/10 px-3 py-1 font-semibold text-[var(--plant-graphite)] hover:bg-black/5">
+                        Ver detalhes
+                      </button>
+                    </div>
+                  </div>
                 ))}
-          </ul>
+          </div>
         </div>
 
-        <div className="rounded-2xl bg-white border border-black/5 p-4">
-          <h2 className="text-lg font-bold text-[var(--plant-graphite)]">Últimas Leituras</h2>
-          <ul className="mt-3 space-y-3">
+        <div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-[var(--plant-graphite)]">Últimas Leituras</h2>
+          </div>
+          <div className="mt-3 space-y-3">
             {loading
               ? skeletonLines()
               : sampleLatestReadings(role).map((r) => (
-                  <li key={r.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ background: r.ok ? "var(--plant-primary)" : "#e11d48" }}
-                      />
-                      <div>
-                        <p className="font-medium">
-                          {r.plant} — {r.sensor}
-                        </p>
-                        <p className="text-xs text-black/60">{r.time}</p>
+                  <div key={r.id} className="rounded-2xl border border-black/5 bg-white px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="h-9 w-9 rounded-xl bg-emerald-50 grid place-items-center">
+                          <LineChart className="h-4.5 w-4.5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-[var(--plant-graphite)]">
+                            {r.sensor}
+                          </div>
+                          <div className="text-xs text-black/45">{r.plant}</div>
+                          <div className="text-xs text-black/45">{r.sensor === "PH-004" ? "pH" : r.unit === "%" ? "Umidade" : "Temperatura"}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-[var(--plant-graphite)]">
+                          {r.value} {r.unit}
+                        </div>
+                        <span
+                          className={[
+                            "mt-1 inline-flex rounded-full px-3 py-0.5 text-[10px] font-semibold",
+                            r.ok
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : "bg-amber-50 text-amber-700 border border-amber-200",
+                          ].join(" ")}
+                        >
+                          {r.ok ? "Normal" : "Baixo"}
+                        </span>
                       </div>
                     </div>
-                    <span className="text-sm font-semibold">
-                      {r.value} {r.unit}
-                    </span>
-                  </li>
+                  </div>
                 ))}
-          </ul>
+          </div>
         </div>
       </section>
     </div>
@@ -202,14 +245,14 @@ function skeletonCards() {
   return [1, 2, 3, 4].map((i) => ({
     key: `s-${i}`,
     title: "—",
-    value: <span className="inline-block h-7 w-16 bg-black/10 rounded-md animate-pulse" />,
+    value: <span className="inline-block h-6 w-12 bg-black/10 rounded-md animate-pulse" />,
     badge: "—",
     delta: 0,
   }));
 }
 function skeletonLines() {
   return Array.from({ length: 4 }, (_, i) => (
-    <li key={i} className="h-10 rounded-md bg-black/5 animate-pulse" />
+    <div key={i} className="h-16 rounded-md bg-black/5 animate-pulse" />
   ));
 }
 
