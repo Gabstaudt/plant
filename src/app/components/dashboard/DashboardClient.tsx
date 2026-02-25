@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Droplet, Thermometer, Sun, Sprout, MapPin, Cpu, LineChart } from "lucide-react";
 import { useRole, type Role } from "@/app/lib/auth.client";
 import { api } from "@/app/lib/http";
-import { sampleRecentPlants, sampleLatestReadings } from "@/app/components/mocks/dashboard/dashboard.mocks";
 
 type Summary = {
   counts: {
@@ -20,6 +19,31 @@ type Summary = {
     sensorsWeek: number;
     successVsMonth: number;
   };
+};
+
+type RecentPlant = {
+  id: number;
+  name: string;
+  species: string;
+  location: string;
+  sensorsCount: number;
+  createdAt: string;
+  readings?: {
+    humidity?: { value: number; unit?: string } | null;
+    temperature?: { value: number; unit?: string } | null;
+    light?: { value: number; unit?: string } | null;
+    latestAt?: string | null;
+  };
+};
+
+type LatestReading = {
+  id: number;
+  sensorName: string;
+  plantName: string | null;
+  value: number;
+  unit: string;
+  type: string;
+  createdAt: string;
 };
 
 const EMPTY_SUMMARY: Summary = {
@@ -44,6 +68,8 @@ function isAdminRole(role: Role) {
 export default function DashboardClient() {
   const role = useRole(); // lê do localStorage (ADMIN_MASTER | ADMIN | USER)
   const [data, setData] = useState<Summary | null>(null);
+  const [recentPlants, setRecentPlants] = useState<RecentPlant[]>([]);
+  const [latestReadings, setLatestReadings] = useState<LatestReading[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -52,8 +78,16 @@ export default function DashboardClient() {
     (async () => {
       try {
         setErrorMsg(null);
-        const res = await api<Summary>(`/dashboard/summary?role=${role}`);
-        if (mounted) setData(res ?? null);
+        const [summaryRes, plantsRes, readingsRes] = await Promise.all([
+          api<Summary>("/dashboard/summary"),
+          api<{ data: RecentPlant[] }>("/dashboard/recent-plants?limit=4"),
+          api<{ data: LatestReading[] }>("/dashboard/latest-readings?limit=4"),
+        ]);
+        if (mounted) {
+          setData(summaryRes ?? null);
+          setRecentPlants(plantsRes?.data ?? []);
+          setLatestReadings(readingsRes?.data ?? []);
+        }
       } catch (e) {
         if (mounted) {
           setData(null);
@@ -70,6 +104,24 @@ export default function DashboardClient() {
 
 
   const safeData: Summary = data ?? EMPTY_SUMMARY;
+  const plantsSafe = recentPlants;
+
+  function formatDate(value: string) {
+    try {
+      return new Date(value).toLocaleString();
+    } catch {
+      return value;
+    }
+  }
+
+  function typeLabel(type: string, unit: string) {
+    const t = type.toUpperCase();
+    if (t.includes("PH")) return "pH";
+    if (t.includes("HUMID")) return "Umidade";
+    if (t.includes("LUMIN")) return "Luminosidade";
+    if (t.includes("TEMP")) return "Temperatura";
+    return unit === "%" ? "Umidade" : "Temperatura";
+  }
 
   return (
     <div className="space-y-6">
@@ -134,7 +186,7 @@ export default function DashboardClient() {
           <div className="mt-3 space-y-3">
             {loading
               ? skeletonLines()
-              : sampleRecentPlants(role).map((p) => (
+              : plantsSafe.map((p: any) => (
                   <div key={p.id} className="rounded-2xl border border-black/5 bg-white p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
@@ -149,12 +201,12 @@ export default function DashboardClient() {
                           <div className="mt-2 flex items-center gap-2 text-xs text-black/45">
                             <span className="inline-flex items-center gap-1">
                               <MapPin className="h-3.5 w-3.5 text-black/40" />
-                              Estufa A - Setor 1
+                              {p.location ?? "—"}
                             </span>
                             <span>•</span>
                             <span className="inline-flex items-center gap-1">
                               <Cpu className="h-3.5 w-3.5 text-black/40" />
-                              4 Sensores
+                              {p.sensorsCount ?? 0} Sensores
                             </span>
                           </div>
                         </div>
@@ -165,31 +217,60 @@ export default function DashboardClient() {
                     </div>
 
                     <div className="mt-4 grid gap-2 sm:grid-cols-3 text-xs text-black/55">
-                      <div className="flex items-center gap-2">
-                        <Droplet className="h-4 w-4 text-[#1D72F2]" />
-                        Umidade
-                        <span className="ml-1 font-semibold text-black/70">65%</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Thermometer className="h-4 w-4 text-[#F97316]" />
-                        Temp.
-                        <span className="ml-1 font-semibold text-black/70">24°C</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Sun className="h-4 w-4 text-[#FACC15]" />
-                        Luz
-                        <span className="ml-1 font-semibold text-black/70">78%</span>
-                      </div>
+                      {p.readings?.humidity ? (
+                        <div className="flex items-center gap-2">
+                          <Droplet className="h-4 w-4 text-[#1D72F2]" />
+                          Umidade
+                          <span className="ml-1 font-semibold text-black/70">
+                            {p.readings.humidity.value}
+                            {p.readings.humidity.unit ?? "%"}
+                          </span>
+                        </div>
+                      ) : null}
+                      {p.readings?.temperature ? (
+                        <div className="flex items-center gap-2">
+                          <Thermometer className="h-4 w-4 text-[#F97316]" />
+                          Temp.
+                          <span className="ml-1 font-semibold text-black/70">
+                            {p.readings.temperature.value}
+                            {p.readings.temperature.unit ?? "°C"}
+                          </span>
+                        </div>
+                      ) : null}
+                      {p.readings?.light ? (
+                        <div className="flex items-center gap-2">
+                          <Sun className="h-4 w-4 text-[#FACC15]" />
+                          Luz
+                          <span className="ml-1 font-semibold text-black/70">
+                            {p.readings.light.value}
+                            {p.readings.light.unit ?? "%"}
+                          </span>
+                        </div>
+                      ) : null}
+                      {!p.readings?.humidity && !p.readings?.temperature && !p.readings?.light ? (
+                        <div className="text-xs text-black/40">Sem leituras recentes</div>
+                      ) : null}
                     </div>
 
                     <div className="mt-3 flex items-center justify-between text-xs text-black/40">
-                      <span>Última leitura: {p.createdAt}</span>
-                      <button className="rounded-full border border-black/10 px-3 py-1 font-semibold text-[var(--plant-graphite)] hover:bg-black/5">
+                      <span>
+                        Última leitura:{" "}
+                        {formatDate(p.readings?.latestAt ?? p.createdAt ?? "")}
+                      </span>
+                      <Link
+                        href={`/plants/${p.id}`}
+                        className="rounded-full border border-black/10 px-3 py-1 font-semibold text-[var(--plant-graphite)] hover:bg-black/5"
+                      >
                         Ver detalhes
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 ))}
+            {!loading && !plantsSafe.length ? (
+              <div className="rounded-2xl border border-black/5 bg-white px-4 py-6 text-sm text-black/45">
+                Nenhuma planta recente encontrada.
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -200,7 +281,7 @@ export default function DashboardClient() {
           <div className="mt-3 space-y-3">
             {loading
               ? skeletonLines()
-              : sampleLatestReadings(role).map((r) => (
+              : latestReadings.map((r: any) => (
                   <div key={r.id} className="rounded-2xl border border-black/5 bg-white px-4 py-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-start gap-3">
@@ -209,10 +290,14 @@ export default function DashboardClient() {
                         </div>
                         <div>
                           <div className="text-sm font-semibold text-[var(--plant-graphite)]">
-                            {r.sensor}
+                            {r.sensorName ?? r.sensor}
                           </div>
-                          <div className="text-xs text-black/45">{r.plant}</div>
-                          <div className="text-xs text-black/45">{r.sensor === "PH-004" ? "pH" : r.unit === "%" ? "Umidade" : "Temperatura"}</div>
+                          <div className="text-xs text-black/45">
+                            {r.plantName ?? r.plant}
+                          </div>
+                          <div className="text-xs text-black/45">
+                            {typeLabel(r.type ?? "", r.unit ?? "")}
+                          </div>
                         </div>
                       </div>
                       <div className="text-right">
@@ -222,17 +307,22 @@ export default function DashboardClient() {
                         <span
                           className={[
                             "mt-1 inline-flex rounded-full px-3 py-0.5 text-[10px] font-semibold",
-                            r.ok
+                            r.ok !== undefined ? r.ok : true
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : "bg-amber-50 text-amber-700 border border-amber-200",
                           ].join(" ")}
                         >
-                          {r.ok ? "Normal" : "Baixo"}
+                          r.ok !== undefined && !r.ok ? "Baixo" : "Normal"
                         </span>
                       </div>
                     </div>
                   </div>
                 ))}
+            {!loading && !latestReadings.length ? (
+              <div className="rounded-2xl border border-black/5 bg-white px-4 py-6 text-sm text-black/45">
+                Nenhuma leitura encontrada.
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
